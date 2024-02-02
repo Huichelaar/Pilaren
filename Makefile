@@ -22,8 +22,8 @@ include $(DEVKITARM)/gba_rules
 #---------------------------------------------------------------------------------
 TARGET		:= $(notdir $(CURDIR))
 BUILD		:= build
-SOURCES		:= source
-INCLUDES	:= include
+SOURCES		:= source source/gfx
+INCLUDES	:= include include/gfx
 DATA		:=
 MUSIC		:=
 
@@ -32,7 +32,7 @@ MUSIC		:=
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2\
+CFLAGS	:=	-g -Wall -Os\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
 		$(ARCH)
 
@@ -45,8 +45,10 @@ LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
+# (Huichelaar) removed -lgba as CpuFastSet is defined in both gbalib and tonclib
+# and Idk how to get rid of multiple definitions error otherwise.
 #---------------------------------------------------------------------------------
-LIBS	:= -lmm -lgba -ltonc
+LIBS	:= -lmm -ltonc
 
 
 #---------------------------------------------------------------------------------
