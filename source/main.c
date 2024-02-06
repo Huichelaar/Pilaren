@@ -13,26 +13,32 @@ EWRAM_DATA u32 gGenericState;
 
 int main() {
 
-  // TODO, properly clear RAM.
-
-  // Enable vblank interrupt in lcdiobuffer.
-  lcdioBuffer.dispstat |= DSTAT_VBL_IRQ;
-
-  // Clear oamBuffer.
+  // Clear buffers.
+  clearBGMapBuffer(0);
+  clearBGMapBuffer(1);
+  clearBGMapBuffer(2);
+  clearBGMapBuffer(3);
+  CpuFastFill(0, palBuffer, 0x200);
+  syncPalFlags = 0;
   oam_init(oamBuffer, 128);
+  syncBGMapFlags = 0;
+  oamBufferConsumed = 0;
 
-	// The vblank interrupt must be enabled for VBlankIntrWait() to work.
-  IRQ_INIT();
-  irq_add(II_VBLANK, VBlankHandler);
-  
-  // Set first colour of palette to white to avoid flashing.
-  pal_bg_mem[0] = CLR_WHITE;
-  
   // Initialize game state, generic state & clocks.
   gClock = 0;
   gGameState = GAME_START;
   gGenericState = 0;
   setGameState(GAME_RESET, 0);
+
+  // Set first colour of palette to white to avoid flashing.
+  pal_bg_mem[0] = CLR_WHITE;
+
+  // Enable vblank interrupt in lcdiobuffer.
+  lcdioBuffer.dispstat |= DSTAT_VBL_IRQ;
+
+	// The vblank interrupt must be enabled for VBlankIntrWait() to work.
+  IRQ_INIT();
+  irq_add(II_VBLANK, VBlankHandler);
 
 	while (1) {
 		VBlankIntrWait();

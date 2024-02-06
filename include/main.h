@@ -1,17 +1,17 @@
 #ifndef MAIN
 #define MAIN
 
+#define STATE_DATA 0x02030000  // Used differently depending on what state game is in.
 
 extern u32 gClock;
 extern u32 gStateClock;
-extern u32 gGameState;
 enum {
   // game states.
   GAME_START = 0,
 	GAME_RESET = 1,
   GAME_TITLE = 2,
 };
-extern u32 gGenericState;
+extern u32 gGameState;
 enum {
   // bootup states.
   BOOTUP_START = 0,
@@ -23,6 +23,7 @@ enum {
   TITLE_FADE2GREEN = 1,
   TITLE_LOAD = 2,
 };
+extern u32 gGenericState;     
 
 const void VBlankHandler();
 const int setGameState(u32 gameState, u32 genericState);
