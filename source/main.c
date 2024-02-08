@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <tonc.h>
 #include "efx.h"
-#include "vrambuffer.h"
+#include "videobuffer.h"
 #include "lcdiobuffer.h"
 #include "title.h"
 #include "main.h"
@@ -35,6 +35,9 @@ int main() {
 
   // Enable vblank interrupt in lcdiobuffer.
   lcdioBuffer.dispstat |= DSTAT_VBL_IRQ;
+  
+  // Use objects as array.
+  lcdioBuffer.dispcnt |= DCNT_OBJ_1D;
 
 	// The vblank interrupt must be enabled for VBlankIntrWait() to work.
   IRQ_INIT();
@@ -58,6 +61,9 @@ const void VBlankHandler() {
   oam_init(oam_mem, 128);
   flushOAMBuffer();
   clearOAMBuffer();
+  
+  // Copy data in copyOnVBlankQueue.
+  flushCopyOnVBlankQueue();
   
   // Update keystates.
   key_poll();

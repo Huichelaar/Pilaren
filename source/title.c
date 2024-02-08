@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <tonc.h>
-#include "vrambuffer.h"
+#include "videobuffer.h"
+#include "lcdiobuffer.h"
 #include "gfx/pil.h"
 #include "pillar.h"
 #include "main.h"
@@ -24,23 +25,76 @@ const void titleUpdate() {
       
       // TODO
       
+      // Enable sprites.
+      lcdioBuffer.dispcnt |= DCNT_OBJ;
+      
       loadPalette((COLOR*)pilPal, 16, 16);
       setSyncPalFlagsByID(16);
       
       initPilArray();
-      pilCamX = 0;
-      pilCamY = 0;
+      pilCamX = -104;
+      pilCamY = 80;
       
+      // Build pillars.
+      const s16 titlePilCoords[20][2] = {
+        PIL_TILE(7, 0),
+        PIL_TILE(6, 1),
+        PIL_TILE(7, 1),
+        PIL_TILE(8, 1),
+        PIL_TILE(6, 2),
+        PIL_TILE(7, 2),
+        PIL_TILE(8, 2),
+        PIL_TILE(9, 2),
+        PIL_TILE(7, 3),
+        PIL_TILE(8, 3),
+        PIL_TILE(1, 6),
+        PIL_TILE(2, 6),
+        PIL_TILE(0, 7),
+        PIL_TILE(1, 7),
+        PIL_TILE(2, 7),
+        PIL_TILE(3, 7),
+        PIL_TILE(1, 8),
+        PIL_TILE(2, 8),
+        PIL_TILE(3, 8),
+        PIL_TILE(2, 9)
+      };
+      
+      //int mask = (qran_range(0, 0x200) << 12) | qran_range(0, 0x1000); // Randomize pillars.
+      struct Pillar pil;
       u8 clrs[6] = {PIL_CLR_BLUE, PIL_CLR_WHITE, PIL_CLR_RED, PIL_CLR_YELLOW, PIL_CLR_RED, PIL_CLR_RED};
-      struct Pillar pil = pilConstr(clrs, 0, 1);
-      int pilID = addPilToPilArray(&pil);
+      int pilID, clrMask;
+      u8 height;
+      for (int i = 0; i < 20; i++) {
+        
+        // Set random colours.
+        clrMask = qran_range(0, 0x1000);
+        for (int j = 0; j < 6; j++) {
+          clrs[j] = 3 & clrMask;
+          clrMask >>= 2;
+        }
+        
+        // Build pillar and add to pilArray.
+        pil = pilConstr(clrs, titlePilCoords[i][0], titlePilCoords[i][1]);
+        pilID = addPilToPilArray(&pil);
+        if (pilID == -1)
+          break;
+        
+        pilSetAnim(&pilArray[pilID], PIL_ANIM_IDLE);
+        
+        // FIXME, randomize height whilst animating raising & lowering pillars.
+        // We favour height = 0 by mapping values > 3 to 0.
+        // This way, nine out of twelve results will be zero,
+        // assuming each value has the same chance of being generated.
+        //height = qran_range(0, 16);
+        //height >>= (height & 0xC);
+        height = 1;
+        
+        pilArray[pilID].height = height;
+        pilArray[pilID].spriteData = pilSpriteData[pilArray[pilID].animID][pilArray[pilID].height];
+        pilArray[pilID].updateTiles = true;
+      }
       
-      if (pilID != -1)
-        pilUnhide(&pilArray[pilID]);
-      
-      pilArray[pilID].height = 3;
-      pilArray[pilID].spriteData = pilSpriteData[pilArray[pilID].animID][pilArray[pilID].height];
-      pilArray[pilID].updateTiles = true;
+      //pilSetAnim(&pilArray[13], PIL_ANIM_TURN);
       
       setGameState(gGameState, TITLE_FADE2GREEN);
       
@@ -48,9 +102,13 @@ const void titleUpdate() {
       
     case TITLE_FADE2GREEN:
       
+      if (!(gStateClock % 78))
+        pilSetAnim(&pilArray[13], PIL_ANIM_TURN);
+      
       pilRunAnims();
+      pilDrawAll();
       
-      
+      gStateClock++;
       break;
   }
 }

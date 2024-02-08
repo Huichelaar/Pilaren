@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <tonc.h>
+#include "videobuffer.h"
 #include "gfx/pil.h"
 #include "pillar.h"
 
@@ -13,6 +14,8 @@ const void initPilArray() {
     pilArray[i].pilID = 0;
   }
   pilCounter = 0;
+  pilCamX = 0;
+  pilCamY = 0;
 }
 
 struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
@@ -79,12 +82,17 @@ int addPilToPilArray(struct Pillar* pil) {
   return -1;              // return -1 if no empty slot in array was found.
 }
 
-// Sets pillar anim to idle so it will be drawn.
-const void pilUnhide(struct Pillar* pil) {
-  pil->animID = PIL_ANIM_IDLE;
+// Sets pillar anim to given anim.
+const void pilSetAnim(struct Pillar* pil, u8 animID) {
+  pil->animID = animID;
   pil->animTimer = 0;
-  pil->updateTiles = true;
-  pil->spriteData = pilSpriteData[PIL_ANIM_IDLE][pil->height];
+  pil->spriteData = pilSpriteData[animID][pil->height];
+  
+  if (animID == PIL_ANIM_HIDDEN) {
+    pil->updateTiles = false;
+  } else {
+    pil->updateTiles = true;
+  }
 }
 
 // Load relevant tiles of pillar into VRAM.
@@ -93,28 +101,38 @@ const void pilLoadTiles(struct Pillar* pil, int offsVRAM) {
   int src, dest;
   int srcOffs, size;
   
+  // Clear tiles first. Load immediately if buffer is full.
+  // FIXME, if this fills buffer, next tile updates will happen before tiles get cleared!
+  if (!addToCopyOnVBlankQueue(0, (void*)offsVRAM, 0x100, BUFFER_FILL))
+    CpuFastFill(0, (void*)offsVRAM, 0x100);
+  
   td = pil->spriteData->tileData;
   while (td != NULL) {
     
     // Correct tile offset on colour.
     srcOffs = (int)td->tileOffs;
+    int j;
     for (int i = 0; i < 6; i++) {
-      if (td->paneInfluence[i] != 0)
-        srcOffs += pil->colour[i] << td->paneInfluence[i];
+      j = (i + 3 * pil->turned) % 6;    // Invert pane influence if pillar is turned.
+      if (td->paneInfluence[j] != 0)
+        srcOffs += pil->colour[i] << td->paneInfluence[j];
     }
     
     src = (int)&pilTiles + srcOffs;
     dest = (int)offsVRAM + (int)td->VRAMOffs;
     size = td->size << 3;
     
-    CpuFastSet((void*)src, (void*)dest, size);
+    // Load tiles. Load immediately if buffer is full.
+    if (!addToCopyOnVBlankQueue((void*)src, (void*)dest, size, BUFFER_COPY))
+      CpuFastSet((void*)src, (void*)dest, size);
     
     td = td->nextTiles;
   }
 }
 
 // Continues animations of all pillars in pillar array.
-// TODO
+// If TURN or RAISE animations finish, set to IDLE.
+// FIXME, do we need &pilArray[i] when calling pilSetAnim? Can't we just give pil variable?
 const void pilRunAnims() {
   struct Pillar* pil;
   for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
@@ -127,18 +145,17 @@ const void pilRunAnims() {
         
       case PIL_ANIM_RAISE:
         if (pil->animTimer >= pil->spriteData->obj.fill) {
-          if (pil->spriteData != NULL) {
+          if (pil->spriteData->nextFrame != NULL) {
             // Move to next animation frame.
             pil->spriteData = pil->spriteData->nextFrame;
+            pil->animTimer = 0;
+            pil->updateTiles = true;
           } else {
             // If that was the last frame, return to idle.
             // Also increment height.
             pil->height += 1;
-            pil->animID = PIL_ANIM_IDLE;
-            pil->spriteData = pilSpriteData[pil->animID][pil->height];
+            pilSetAnim(&pilArray[i], PIL_ANIM_IDLE);
           }
-          pil->animTimer = 0;
-          pil->updateTiles = true;
         } else {
           pil->animTimer++;
         }
@@ -146,18 +163,17 @@ const void pilRunAnims() {
         
       case PIL_ANIM_TURN:
         if (pil->animTimer >= pil->spriteData->obj.fill) {
-          if (pil->spriteData != NULL) {
+          if (pil->spriteData->nextFrame != NULL) {
             // Move to next animation frame.
             pil->spriteData = pil->spriteData->nextFrame;
+            pil->animTimer = 0;
+            pil->updateTiles = true;
           } else {
             // If that was the last frame, return to idle.
             // Also flip turn parameter.
             pil->turned = !pil->turned;
-            pil->animID = PIL_ANIM_IDLE;
-            pil->spriteData = pilSpriteData[pil->animID][pil->height];
+            pilSetAnim(&pilArray[i], PIL_ANIM_IDLE);
           }
-          pil->animTimer = 0;
-          pil->updateTiles = true;
         } else {
           pil->animTimer++;
         }
@@ -177,15 +193,49 @@ const void pilRunAnims() {
 
 // Draw all pillars in pillar array.
 const void pilDrawAll() {
-  struct Pillar pil;
+  struct Pillar* pil;
+  s16 x, y;
+  OBJ_ATTR obj = {0, 0, 0, 0};;
+  
   for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
     if (!pilArray[i].pilID)
       continue;
     
-    pil = pilArray[i];
+    pil = &pilArray[i];
     
-    // TODO
+    // Don't draw hidden pillars.
+    if (pil->animID == PIL_ANIM_HIDDEN)
+      continue;
     
+    // Pillars are displayed at a 45 degree angle.
+    x = (pil->x - pil->y) - pilCamX;
+    y = (pil->x + pil->y) - pilCamY;
+    
+    // Pillars are four tiles (32 pixels) wide
+    // and eight tiles (64 pixels) tall.
+    if (x <= -32 || x >= SCREEN_WIDTH ||
+        y <= -64 || y >= SCREEN_HEIGHT)
+      continue;     // Offscreen; Don't draw.
+    
+    // Build object based on spriteData member.
+    obj_copy(&obj, &pil->spriteData->obj, 1);
+    
+    // Add coordinates.
+    obj.attr0 = (obj.attr0 & 0xFF00) | ((obj.attr0 + y) & ATTR0_Y_MASK);
+    obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
+    
+    // Set tile.
+    obj.attr2 |= ((i << 5) & ATTR2_ID_MASK);
+    
+    // Mask with pillar specific attributes (no coordinates!)
+    obj.attr0 |= pil->objMask.attr0;
+    obj.attr1 |= pil->objMask.attr1;
+    obj.attr2 |= pil->objMask.attr2;
+    
+    // Draw to screen.
+    // Priority determined by Y-value. Higher pillars should be drawn before lower pillars.
+    // Therefore, we flip the importance of Y, by multiplying it by -1.
+    addToOAMBuffer(&obj, -y);
   }
 }
 

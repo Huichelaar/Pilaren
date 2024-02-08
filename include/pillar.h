@@ -2,6 +2,9 @@
 #define PILLAR
 
 #define PIL_ARRAY_SIZE 20
+#define PIL_TILE_WIDTH 17
+#define PIL_TILE_HEIGHT 17
+#define PIL_TILE(x, y) {x*PIL_TILE_WIDTH, y*PIL_TILE_HEIGHT}
 
 extern u32 pilCounter;
 extern s16 pilCamX;
@@ -60,8 +63,9 @@ struct Pillar pilConstr(u8* colours, s16 x, s16 y);
 int addPilToPilArray(struct Pillar* pil);
 const void removePil(int pilID);
 struct Pillar* genRandPil();
-const void pilUnhide(struct Pillar* pil);
-const void pilRunAnims();
 const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
+const void pilSetAnim(struct Pillar* pil, u8 animID);
+const void pilRunAnims();
+const void pilDrawAll();
 
 #endif // PILLAR

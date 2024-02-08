@@ -1,7 +1,7 @@
 #ifndef MAIN
 #define MAIN
 
-#define STATE_DATA 0x02030000  // Used differently depending on what state game is in.
+#define STATE_DATA 0x02038000  // Used differently depending on what state game is in. Room for 0x8000 bytes.
 
 extern u32 gClock;
 extern u32 gStateClock;
