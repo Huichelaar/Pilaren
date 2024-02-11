@@ -20,8 +20,7 @@ enum {
   
   // title states.
   TITLE_START = 0,
-  TITLE_FADE2GREEN = 1,
-  TITLE_LOAD = 2,
+  TITLE_LOAD = 1,
 };
 extern u32 gGenericState;     
 

@@ -9,6 +9,7 @@
 extern u32 pilCounter;
 extern s16 pilCamX;
 extern s16 pilCamY;
+extern const COLOR pilColourByID[4];
 
 struct Pillar {
   int pilID;
@@ -34,13 +35,20 @@ enum {
   PIL_ANIM_HIDDEN = 0,
   PIL_ANIM_IDLE = 1,
   PIL_ANIM_RAISE = 2,
-  PIL_ANIM_TURN = 3,
+  PIL_ANIM_LOWER = 3,
+  PIL_ANIM_TURN = 4,
   
-  // Pillar pane colours.
-  PIL_CLR_WHITE = 0,
-  PIL_CLR_BLUE = 1,
-  PIL_CLR_RED = 2,
-  PIL_CLR_YELLOW = 3
+  // Pillar colourIDs.
+  PIL_CLRID_WHITE = 0,
+  PIL_CLRID_BLUE = 1,
+  PIL_CLRID_RED = 2,
+  PIL_CLRID_YELLOW = 3,
+  
+  // Pillar colours.
+  PIL_CLR_WHITE = CLR_WHITE,
+  PIL_CLR_BLUE = 0x7E8D,
+  PIL_CLR_RED = 0x317B,
+  PIL_CLR_YELLOW = 0x1FDF,
 };
 
 struct PillarSpriteData {
@@ -48,7 +56,7 @@ struct PillarSpriteData {
   const struct PillarTileData* tileData;
   const struct PillarSpriteData* nextFrame;
 };
-extern const struct PillarSpriteData* pilSpriteData[4][4];
+extern const struct PillarSpriteData* pilSpriteData[5][4];
 
 struct PillarTileData {
   const void* tileOffs;                         // Offset added to base tiles ptr.

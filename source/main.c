@@ -117,7 +117,7 @@ const void bootupUpdate() {
       CBB_CLEAR(3);
       
       // Set first colour to white.
-      setColour(CLR_WHITE, 0, 0);
+      setColour(CLR_WHITE, 0);
       setSyncPalFlagsByID(0);
       
       setGameState(gGameState, BOOTUP_FADE2BLACK);
@@ -126,10 +126,13 @@ const void bootupUpdate() {
     
       gStateClock++;
       int duration = 20;
+      const COLOR clrA = CLR_WHITE;
+      const COLOR clrB = CLR_DEAD;
+      COLOR clrC;
       
       if (gStateClock >= duration) {
-        setColour(CLR_BLACK, 0, 0);       // Set BG (transparant) colour to black
-        setColour(CLR_WHITE, 0, 1);       // Set text colour to white.
+        setColour(CLR_DEAD, 0);           // Set BG (transparant) colour.
+        setColour(CLR_WHITE, 1);          // Set text colour to white.
         setSyncPalFlagsByID(0);
         
         lcdioBuffer.bg0hofs = -76;        // Move such that text is
@@ -149,12 +152,8 @@ const void bootupUpdate() {
         return;
       }
       
-      u16 channel = ease(0x1F, 0, gStateClock, duration, EASE_SQUARED);
-      COLOR col = (channel << RED_SHIFT) |
-                  (channel << GREEN_SHIFT) |
-                  (channel << BLUE_SHIFT);
-      
-      setColour(col, 0, 0);
+      clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, gStateClock, duration, EASE_SQUARED));
+      setColour(clrC, 0);
       setSyncPalFlagsByID(0);
       break;
     

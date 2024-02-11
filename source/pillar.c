@@ -8,6 +8,7 @@ EWRAM_DATA u32 pilCounter;
 EWRAM_DATA s16 pilCamX;
 EWRAM_DATA s16 pilCamY;
 EWRAM_DATA struct Pillar pilArray[PIL_ARRAY_SIZE];
+const COLOR pilColourByID[4] = {PIL_CLR_WHITE, PIL_CLR_BLUE, PIL_CLR_RED, PIL_CLR_YELLOW};
 
 const void initPilArray() {
   for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
@@ -160,7 +161,25 @@ const void pilRunAnims() {
           pil->animTimer++;
         }
         break;
-        
+      
+      case PIL_ANIM_LOWER:
+        if (pil->animTimer >= pil->spriteData->obj.fill) {
+          if (pil->spriteData->nextFrame != NULL) {
+            // Move to next animation frame.
+            pil->spriteData = pil->spriteData->nextFrame;
+            pil->animTimer = 0;
+            pil->updateTiles = true;
+          } else {
+            // If that was the last frame, return to idle.
+            // Also decrement height.
+            pil->height -= 1;
+            pilSetAnim(&pilArray[i], PIL_ANIM_IDLE);
+          }
+        } else {
+          pil->animTimer++;
+        }
+        break;
+      
       case PIL_ANIM_TURN:
         if (pil->animTimer >= pil->spriteData->obj.fill) {
           if (pil->spriteData->nextFrame != NULL) {

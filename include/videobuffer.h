@@ -4,7 +4,7 @@
 #define VRAMBUFFER 0x02020000   // Used to buffer tiles to be sent to VRAM on next VBlank. size: 0x18000 bytes.
 
 extern SCR_ENTRY bgmap[3][0x400];
-extern COLOR palBuffer[32][16];
+extern COLOR palBuffer[32*16];
 extern u32 syncPalFlags;
 extern OBJ_ATTR oamBuffer[128];
 extern u8 syncBGMapFlags;
@@ -26,8 +26,8 @@ const void setSyncBGMapFlagsByID (int bg);
 const void setSyncBGMapFlagsByMask (int bg);
 const void setSyncPalFlagsByID(int pal);
 const void setSyncPalFlagsByMask(int pal);
-const void loadPalette(COLOR* pal, int palSlot, int size);
-const void setColour(COLOR col, int palSlot, int colSlot);
+const void loadColours(COLOR* clrs, int colSlot, int size);
+const void setColour(COLOR col, int colSlot);
 const void flushBGBuffer();
 const void flushPalBuffer();
 const void clearBGMapBuffer();

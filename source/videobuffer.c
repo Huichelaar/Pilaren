@@ -3,7 +3,7 @@
 #include "videobuffer.h"
 
 EWRAM_DATA SCR_ENTRY bgmap[3][0x400] = {0};
-EWRAM_DATA COLOR palBuffer[32][16] = {0};
+EWRAM_DATA COLOR palBuffer[32*16] = {0};
 EWRAM_DATA u32 syncPalFlags = 0;
 EWRAM_DATA OBJ_ATTR oamBuffer[128] = {0};
 EWRAM_DATA u8 syncBGMapFlags = 0;
@@ -28,12 +28,20 @@ const void setSyncPalFlagsByMask(int pal) {
   syncPalFlags |= pal;
 }
 
-const void loadPalette(COLOR* pal, int palSlot, int size) {
-  CpuFastSet(pal, palBuffer[palSlot], size>>2);
+// load clrs into palette buffer.
+// palslot: offset at which to start copying to.
+// size: number of colours.
+const void loadColours(COLOR* clrs, int colSlot, int size) {
+  // CpuFastSet if size is multiple of 8 bytes and large enough.
+  if ((size >= 0x20) && ((size & 0x3) == 0))
+    CpuFastSet(clrs, &palBuffer[colSlot], size>>1);
+  else
+    CpuSet(clrs, &palBuffer[colSlot], size);
 }
 
-const void setColour(COLOR col, int palSlot, int colSlot) {
-  palBuffer[palSlot][colSlot] = col;
+// For setting individual colours.
+const void setColour(COLOR col, int colSlot) {
+  palBuffer[colSlot] = col;
 }
 
 // copy tilemaps from buffers to screen blocks
@@ -59,7 +67,7 @@ const void flushPalBuffer() {
   
   for (int i = 0; i < 32; i++) {
     if (syncPalFlags & (1 << i)) {
-      src = (PALBANK*)palBuffer[i];
+      src = (PALBANK*)&palBuffer[i<<4];
       dest = (PALBANK*)pal_bg_bank[i];
       CpuFastSet(src, dest, 0x8);
     }
