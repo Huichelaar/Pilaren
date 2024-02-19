@@ -3,9 +3,14 @@
 #include "efx.h"
 #include "videobuffer.h"
 #include "lcdiobuffer.h"
+#include "lang.h"
 #include "title.h"
 #include "main.h"
 
+#define CURSORLOOP_INIT_DELAY 30  // After CURSORLOOP_INIT_DELAY frames,
+#define CURSORLOOP_DELAY 6        // move to next element every CURSORLOOP_DELAY frames.
+
+EWRAM_DATA u32 keyHeld[10];
 EWRAM_DATA u32 gClock;
 EWRAM_DATA u32 gStateClock;
 EWRAM_DATA u32 gGameState;
@@ -23,6 +28,9 @@ int main() {
   oam_init(oamBuffer, 128);
   syncBGMapFlags = 0;
   oamBufferConsumed = 0;
+  
+  for (int i = 0; i < 10; i++)
+    keyHeld[i] = 0;
 
   // Initialize game state, generic state & clocks.
   gClock = 0;
@@ -66,6 +74,8 @@ const void VBlankHandler() {
   flushCopyOnVBlankQueue();
   
   // Update keystates.
+  for (int i = 0; i < 10; i++)
+    keyHeld[i] += (REG_KEYINPUT & (1 << i)) ? -keyHeld[i] : 1;
   key_poll();
   
   gClock++;
@@ -89,7 +99,7 @@ const int setGameState(u32 gameState, u32 genericState) {
 const void updateRoutine() {
   switch (gGameState) {
     case GAME_RESET:
-      bootupUpdate();
+      langUpdate();
       break;
     case GAME_TITLE:
       titleUpdate();
@@ -97,90 +107,62 @@ const void updateRoutine() {
   }
 }
 
-// Updates game during bootup state.
-const void bootupUpdate() {
-  int timer;
+// Move cursor from one grid element to the next,
+// based on key input. Holding R enables diagonal movement.
+// Returns true if cursor moved, false otherwise.
+// Allows for looping every CURSORLOOP_DELAY frames to
+// next element if directional keys have been held for
+// CURSORLOOP_INIT_DELAY frames.
+int moveCursorByInput(u32* cursor, u32 left, u32 right, u32 up, u32 down,
+                      u32 leftUp, u32 leftDown, u32 rightUp, u32 rightDown) {
+  int horiLoop = 0;
+  int vertLoop = 0;
+  int keyDelay = 0;
+  const int horiHit = KEY_EQ(key_hit, KEY_RIGHT) - KEY_EQ(key_hit, KEY_LEFT);
+  const int horiHeld = KEY_EQ(key_is_down, KEY_RIGHT) - KEY_EQ(key_is_down, KEY_LEFT);
+  const int vertHit = KEY_EQ(key_hit, KEY_DOWN) - KEY_EQ(key_hit, KEY_UP);
+  const int vertHeld = KEY_EQ(key_is_down, KEY_DOWN) - KEY_EQ(key_is_down, KEY_UP);
   
-  switch (gGenericState) {
-    case BOOTUP_START:
-      
-      // Set BG-control.
-      lcdioBuffer.bg0cnt = BG_BUILD(0, 28, 0, 0, 0, 0, 0);
-      lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 0, 0, 1, 0, 0);
-      lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 0, 0, 2, 0, 0);
-      lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 0, 3, 0, 0);
-    
-      // Clear background tiles & screen entries.
-      CBB_CLEAR(0);
-      CBB_CLEAR(1);
-      CBB_CLEAR(2);
-      CBB_CLEAR(3);
-      
-      // Set first colour to white.
-      setColour(CLR_WHITE, 0);
-      setSyncPalFlagsByID(0);
-      
-      setGameState(gGameState, BOOTUP_FADE2BLACK);
-    
-    case BOOTUP_FADE2BLACK:
-    
-      gStateClock++;
-      int duration = 20;
-      const COLOR clrA = CLR_WHITE;
-      const COLOR clrB = CLR_DEAD;
-      COLOR clrC;
-      
-      if (gStateClock >= duration) {
-        setColour(CLR_DEAD, 0);           // Set BG (transparant) colour.
-        setColour(CLR_WHITE, 1);          // Set text colour to white.
-        setSyncPalFlagsByID(0);
-        
-        lcdioBuffer.bg0hofs = -76;        // Move such that text is
-        lcdioBuffer.bg0vofs = -76;        // in the centre of the screen.
-        
-        // Write text.
-        tte_init_se(0,
-                    BG_CBB(0)|BG_SBB(28),
-                    0,
-                    CLR_WHITE,
-                    0,
-                    NULL,
-                    NULL);
-        tte_write("Press START");
-        
-        setGameState(gGameState, BOOTUP_WAITFORINPUT);
-        return;
-      }
-      
-      clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, gStateClock, duration, EASE_SQUARED));
-      setColour(clrC, 0);
-      setSyncPalFlagsByID(0);
+  // Determine cursor loop delay. Shared between keys to avoid triggering
+  // loops more often if more keys are held starting at different frames.
+  for (int i = KI_RIGHT; i <= KI_DOWN; i++) {
+    if (keyHeld[i] >= CURSORLOOP_INIT_DELAY) {
+      keyDelay = keyHeld[i];
       break;
-    
-    case BOOTUP_WAITFORINPUT:
-    
-      // Flash text.
-      timer = gStateClock % 30;
-      if (timer < 10)
-        lcdioBuffer.dispcnt &= ~DCNT_BG0;
-      else
-        lcdioBuffer.dispcnt |= DCNT_BG0;
-      
-      if (key_hit(1<<KI_START)) {
-        
-        // Disable & clear BG0.
-        lcdioBuffer.dispcnt &= ~DCNT_BG0;
-        clearBGMapBuffer(0);
-        setSyncBGMapFlagsByID(0);
-        
-        // Seed RNG.
-        sqran(gClock);
-        
-        setGameState(GAME_TITLE, TITLE_START);
-        return;
-      }
-      
-      gStateClock++;
-      break;
+    }
   }
+  
+  // Check if keys have been held long enough for auto-move.
+  if (((keyHeld[KI_RIGHT] >= CURSORLOOP_INIT_DELAY) || 
+       (keyHeld[KI_LEFT] >= CURSORLOOP_INIT_DELAY)) &&
+       (!(keyDelay % CURSORLOOP_DELAY)))
+    horiLoop = horiHeld;
+  if (((keyHeld[KI_DOWN] >= CURSORLOOP_INIT_DELAY) || 
+       (keyHeld[KI_UP] >= CURSORLOOP_INIT_DELAY)) &&
+       (!(keyDelay % CURSORLOOP_DELAY)))
+    vertLoop = vertHeld;
+  
+  if (KEY_EQ(key_is_down, KEY_R)) {
+    // Diagonal input.
+    if (moveDiagonal(horiHit, vertHit, cursor, leftUp, leftDown, rightUp, rightDown))
+      return true;
+    if (moveDiagonal(horiHit, vertHeld, cursor, leftUp, leftDown, rightUp, rightDown))
+      return true;
+    if (moveDiagonal(horiHeld, vertHit, cursor, leftUp, leftDown, rightUp, rightDown))
+      return true;
+    if (moveDiagonal(horiLoop, vertLoop, cursor, leftUp, leftDown, rightUp, rightDown))
+      return true;
+  } else {
+    // Lateral input.
+    if (moveLateral(horiHit, cursor, left, right))
+      return true;
+    if (moveLateral(vertHit, cursor, up, down))
+      return true;
+    if (moveLateral(horiLoop, cursor, left, right))
+      return true;
+    if (moveLateral(vertLoop, cursor, up, down))
+      return true;
+  }
+  
+  return false;
 }

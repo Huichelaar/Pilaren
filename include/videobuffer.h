@@ -38,5 +38,6 @@ const void clearOAMBuffer();
 int addToOAMBuffer(OBJ_ATTR* object, int priority);
 const void flushCopyOnVBlankQueue();
 int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode);
+const void mapTilemap(SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);
 
 #endif // VIDEOBUFFER

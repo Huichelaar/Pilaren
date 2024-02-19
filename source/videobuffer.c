@@ -202,3 +202,15 @@ int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode) {
   copyOnVBlankQueueConsumed++;
   return true;
 }
+
+// Map tileMap in src to dest.
+// mask can contain palette and additional tileoffset data.
+const void mapTilemap(SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask) {
+  int x, y;
+  
+  dest = dest + yOffs * 32 + xOffs;
+  
+  for (y = 0; y < height; y++)
+    for (x = 0; x < width; x++)
+      dest[y * 32 + x] = src[y * width + x] | mask;
+}
