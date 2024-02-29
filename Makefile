@@ -22,7 +22,7 @@ include $(DEVKITARM)/gba_rules
 #---------------------------------------------------------------------------------
 TARGET		:= $(notdir $(CURDIR))
 BUILD		:= build
-SOURCES		:= source source/gfx source/gfx/lang data
+SOURCES		:= source source/font source/gfx source/gfx/lang data
 INCLUDES	:= include include/gfx
 DATA		:=
 MUSIC		:=
@@ -32,9 +32,7 @@ MUSIC		:=
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -Os\
-		-mcpu=arm7tdmi -mtune=arm7tdmi\
-		$(ARCH)
+CFLAGS	:=	-g -Wall -Os -mcpu=arm7tdmi -mtune=arm7tdmi $(ARCH)
 
 CFLAGS	+=	$(INCLUDE)
 

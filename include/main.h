@@ -17,8 +17,8 @@ extern u32 gGenericState;
 
 const void VBlankHandler();
 const int setGameState(u32 gameState, u32 genericState);
-const void updateRoutine();
-const void bootupUpdate();
+const void update();
+const void reset(int forceReset);
 
 // Moves cursor diagonally
 // if both hori and vert are true and next tile is available.

@@ -17,44 +17,58 @@ EWRAM_DATA u32 gGameState;
 EWRAM_DATA u32 gGenericState;
 
 int main() {
-
-  // Clear buffers.
-  clearBGMapBuffer(0);
-  clearBGMapBuffer(1);
-  clearBGMapBuffer(2);
-  clearBGMapBuffer(3);
-  CpuFastFill(0, palBuffer, 0x200);
-  syncPalFlags = 0;
-  oam_init(oamBuffer, 128);
-  syncBGMapFlags = 0;
-  oamBufferConsumed = 0;
-  
-  for (int i = 0; i < 10; i++)
-    keyHeld[i] = 0;
-
-  // Initialize game state, generic state & clocks.
-  gClock = 0;
-  gGameState = GAME_START;
-  gGenericState = 0;
-  setGameState(GAME_RESET, 0);
-
-  // Set first colour of palette to white to avoid flashing.
-  pal_bg_mem[0] = CLR_WHITE;
-
-  // Enable vblank interrupt in lcdiobuffer.
-  lcdioBuffer.dispstat |= DSTAT_VBL_IRQ;
-  
-  // Use objects as array.
-  lcdioBuffer.dispcnt |= DCNT_OBJ_1D;
-
-	// The vblank interrupt must be enabled for VBlankIntrWait() to work.
-  IRQ_INIT();
-  irq_add(II_VBLANK, VBlankHandler);
+  reset(true);
 
 	while (1) {
 		VBlankIntrWait();
-    updateRoutine();
+    update();
+    reset(false);
 	}
+}
+
+// Resets game if START+SELECT+L+R is held.
+const void reset(int forceReset) {
+  int resetKeys = KEY_SELECT | KEY_START | KEY_R | KEY_L;
+  int keyHit = key_hit(KEY_SELECT | KEY_START | KEY_R | KEY_L);
+  
+  // Reset only if forceReset, or reset key combination was given.
+  if (forceReset || (KEY_EQ(key_is_down, resetKeys) && keyHit)) {
+  
+    // Clear IRQ.
+    IRQ_INIT();
+    
+    // Clear buffers.
+    clearBGMapBuffer(0);
+    clearBGMapBuffer(1);
+    clearBGMapBuffer(2);
+    clearBGMapBuffer(3);
+    CpuFastFill(0, palBuffer, 0x200);
+    syncPalFlags = 0;
+    oam_init(oamBuffer, 128);
+    syncBGMapFlags = 0;
+    oamBufferConsumed = 0;
+    
+    for (int i = 0; i < 10; i++)
+      keyHeld[i] = 0;
+
+    // Initialize game state, generic state & clocks.
+    gClock = 0;
+    gGameState = GAME_START;
+    gGenericState = 0;
+    setGameState(GAME_RESET, 0);
+
+    // Set first colour of palette to white to avoid flashing.
+    pal_bg_mem[0] = CLR_WHITE;
+
+    // Enable vblank interrupt in lcdiobuffer.
+    lcdioBuffer.dispstat |= DSTAT_VBL_IRQ;
+    
+    // Use objects as array.
+    lcdioBuffer.dispcnt |= DCNT_OBJ_1D;
+
+    // The vblank interrupt must be enabled for VBlankIntrWait() to work.
+    irq_add(II_VBLANK, VBlankHandler);
+  }
 }
 
 // Various things that need to happen at VBlank.
@@ -96,7 +110,7 @@ const int setGameState(u32 gameState, u32 genericState) {
 }
 
 // Updates game.
-const void updateRoutine() {
+const void update() {
   switch (gGameState) {
     case GAME_RESET:
       langUpdate();

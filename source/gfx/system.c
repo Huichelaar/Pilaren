@@ -1,0 +1,31 @@
+
+//{{BLOCK(system)
+
+//======================================================================
+//
+//	system, 8x16@4, 
+//	+ palette 16 entries, not compressed
+//	+ 2 tiles Metatiled by 1x2 not compressed
+//	Total size: 32 + 64 = 96
+//
+//	Time-stamp: 2024-02-27, 08:16:37
+//	Exported by Cearn's GBA Image Transmogrifier, v0.8.3
+//	( http://www.coranac.com/projects/#grit )
+//
+//======================================================================
+
+const unsigned short systemTiles[32] __attribute__((aligned(4)))=
+{
+	0x0011,0x0000,0x0121,0x0000,0x1231,0x0000,0x3310,0x0001,
+	0x3100,0x0014,0x4310,0x0001,0x1431,0x0000,0x0141,0x0000,
+	0x0011,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
+};
+
+const unsigned short systemPal[16] __attribute__((aligned(4)))=
+{
+	0x7C1F,0x0000,0x03E0,0x02E0,0x01E0,0x0000,0x0000,0x0000,
+	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
+};
+
+//}}BLOCK(system)

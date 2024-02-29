@@ -3,32 +3,32 @@
 #include "videobuffer.h"
 #include "lcdiobuffer.h"
 #include "efx.h"
-#include "gfx/mainMenu.h"
 #include "gfx/pil.h"
 #include "gfx/pilTitle.h"
 #include "pillar.h"
+#include "puzzle.h"
+#include "menu.h"
 #include "main.h"
 #include "title.h"
 
 #define TITLE_PILLARCOUNT 20
+#define TITLE_OPTIONCOUNT 10
+#define TITLE_MENUCOUNT 10
 
 #define ADR1 STATE_DATA
 #define ADR2 ADR1+TITLE_PILLARCOUNT
-//#define ADR3 ADR2+sizeof(struct TitleABCD2)
-
-
-//struct TitleABCD2* title2 = (struct TitleABCD2*)(ADR2);
-//struct TitleABCD* title3 = (struct TitleABCD*)(ADR3);
-
-
-//#undefine ADR2 ADR1+sizeof(struct TitleABCD)
-//#undefine ADR3 ADR2+sizeof(struct TitleABCD2)
+#define ADR3 ADR2+sizeof(u8)
+#define ADR4 ADR3+TITLE_OPTIONCOUNT
 
 u8* hiddenPillars = (u8*)(ADR1);        // Tracks which pillars are still hidden. Size of TITLE_PILLARCOUNT bytes.
 u8* titleLoadProgress = (u8*)(ADR2);    // Used by titleLoad to determine when to move to next state.
+u8* cursorID = (u8*)(ADR3);             // Used to keep track of where cursor is in menu.
+u8* menuID = (u8*)(ADR4);               // Used to keep track of which (sub)menu is active.
 
 #undef ADR1
 #undef ADR2
+#undef ADR3
+#undef ADR4
 
 const void titleStart() {
   int pilID;
@@ -60,30 +60,31 @@ const void titleStart() {
   lcdioBuffer.bg3cnt |= BG_8BPP | BG_PRIO(3);
   lcdioBuffer.bg3vofs = -6;
   
-  // Load main menu tiles, tilemap and palette.
+  // Setup main menu BGCNT.
   lcdioBuffer.bg2cnt &= ~BG_CBB_MASK;
   lcdioBuffer.bg2cnt |= BG_CBB(1);      // Avoid competing with title for tiles.
   lcdioBuffer.bg2cnt |= BG_PRIO(2);
   
-  // Setup window for menu.
+  // Setup window for main menu.
   lcdioBuffer.win0h = WIN_BUILD(168, 80);
   lcdioBuffer.win0v = WIN_BUILD(102, 102);
-  lcdioBuffer.winin = WININ_BUILD((WIN_BG2), (0));
+  lcdioBuffer.winin = WININ_BUILD((WIN_BG1 | WIN_BG2), (0));
   lcdioBuffer.winout = WINOUT_BUILD((WIN_BG3 | WIN_OBJ | WIN_BLD), (0));
-  lcdioBuffer.dispcnt |= DCNT_WIN0 | DCNT_BG2;
+  lcdioBuffer.dispcnt |= DCNT_WIN0 | DCNT_BG1 | DCNT_BG2;
   
-  CpuFastSet((void*)mainMenuTiles, (void*)(tile_mem[1]), mainMenuTilesLen>>2);
-  mapTilemap((SCR_ENTRY*)mainMenuMap, bgmap[2], 10, 7, 11, 12, 0x6000);    // Use palette 6 onwards.
-  setSyncBGMapFlagsByID(2);
-  
-  loadColours((COLOR*)mainMenuPal, 6*16, mainMenuPalLen>>1);
-  setSyncPalFlagsByID(6);
+  // Setup main menu.
+  lcdioBuffer.bg1cnt &= ~BG_CBB_MASK;
+  lcdioBuffer.bg1cnt |= BG_CBB(2);
+  lcdioBuffer.bg1cnt |= BG_PRIO(1);
+  menuClear();
+  addMenu(&titleMenu);
   
   // Enable sprites.
   lcdioBuffer.dispcnt |= DCNT_OBJ;
   loadColours((COLOR*)pilPal, 256, 16);
   setSyncPalFlagsByID(16);
   
+  // Setup flavour pillars.
   initPilArray();
   pilCamX = -104;
   pilCamY = 80;
@@ -230,7 +231,19 @@ const void titleLoad() {
   pilDrawAll();
   
   gStateClock++;
+  
+  if ((*titleLoadProgress & TITLELOAD_ALL) == TITLELOAD_ALL)
+    setGameState(gGameState, TITLE_INPUT);
 }
+
+const void titleInput() {
+  
+  runMenus();
+  pilRunAnims();
+  pilDrawAll();
+  
+  gStateClock++;
+};
 
 const void titleUpdate() {
   switch(gGenericState) {
@@ -240,5 +253,64 @@ const void titleUpdate() {
     case TITLE_LOAD:
       titleLoad();
       break;
+    case TITLE_INPUT:
+      titleInput();
+      break;
+  }
+}
+
+// Routine run when selecting "Custom game" on titlemenu.
+const void selectCuGm(const struct MenuItem* mi) {
+  addMenu(&customGameMenu);
+  
+  puzStageMax = 1;
+  puzStageCur = 1;
+  
+  tte_set_pos(64, 0);
+  tte_write("2");
+  puzLength = 2;
+  tte_set_pos(64, 16);
+  tte_write("2");
+  puzBreadth = 2;
+  tte_set_pos(64, 32);
+  tte_write("1");
+  puzHeight = 1;
+}
+
+// Routine run when hovering over puzzle dimensions
+// in custom game submenu. Change dimension value
+// based on input.
+const void hoverCuGmItems(const struct MenuItem* mi) {
+  const int lim[6] = {PUZZLE_LENGTH_MIN, PUZZLE_LENGTH_MAX,
+                      PUZZLE_BREADTH_MIN, PUZZLE_BREADTH_MAX,
+                      PUZZLE_HEIGHT_MIN, PUZZLE_HEIGHT_MAX};
+  const int y = mi->id << 4;
+  u8* dim = puzDim[mi->id];
+  int change = false;
+  char dimGlyph[2] = {'0', '\0'};
+  
+  // Draw additional cursor.
+  drawMenuCursorFlip(mi);
+  
+  // Change dimension value based on input.
+  int keyTrib = KEY_EQ(key_hit, KEY_RIGHT) - KEY_EQ(key_hit, KEY_LEFT);
+  if (keyTrib) {
+    *dim += keyTrib;
+    change = true;
+    if (*dim < lim[mi->id << 1]) {
+      *dim = lim[mi->id << 1];
+      change = false;
+    } else if (*dim > lim[(mi->id << 1) + 1]) {
+      *dim = lim[(mi->id << 1) + 1];
+      change = false;
+    }
+  }
+  
+  // Redraw dimension value if it changed.
+  if (change) {
+    tte_erase_rect(64, y, 72, y+16);
+    tte_set_pos(64, y);
+    dimGlyph[0] = '0' + *dim;
+    tte_write(dimGlyph);
   }
 }

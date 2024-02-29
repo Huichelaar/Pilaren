@@ -1,7 +1,7 @@
 #ifndef LANG
 #define LANG
 
-#define LANG_COUNT 3
+#define LANG_COUNT 2
 #define LANG_LIMIT 10
 
 enum {
@@ -36,7 +36,6 @@ struct LanguageWidget {
   const struct LanguageWidget* leftDown;
   const struct LanguageWidget* rightUp;
   const struct LanguageWidget* rightDown;
-  
 };
 extern const struct LanguageWidget langWidget[LANG_LIMIT];
 

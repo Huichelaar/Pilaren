@@ -42,7 +42,7 @@ enum {
 };
 
 int ease(int start, int end, int curX, int endX, int easeFunc);
-const void HBlankScrollBG();
 const void generateSinusoid(int frequency, int amplitude, int phase);
+IWRAM_CODE const void HBlankScrollBG();
 
 #endif // EFX

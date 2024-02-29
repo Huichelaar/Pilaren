@@ -67,21 +67,6 @@ const void langLoad() {
     setColour(CLR_WHITE, 1);          // Set text colour to white.
     setSyncPalFlagsByID(0);
     
-    lcdioBuffer.bg0hofs = -76;        // Move such that text is
-    lcdioBuffer.bg0vofs = -76;        // in the centre of the screen.
-    
-    /*
-    // Write text.
-    tte_init_se(0,
-                BG_CBB(0)|BG_SBB(28),
-                0,
-                CLR_WHITE,
-                0,
-                NULL,
-                NULL);
-    tte_write("Press START");
-    */
-    
     setGameState(gGameState, LANG_WAITFORINPUT);
     return;
   }
@@ -106,26 +91,6 @@ const void langInput() {
     addToOAMBuffer(&langObj, i);
   }
   
-  // Highlight selected language.
-  clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, ABS(15 - (gStateClock % 30)), 15, EASE_SQUARED));
-  setColour(clrC, (langCursor->id << 4) + 258);
-  setSyncPalFlagsByID(langCursor->id + 16);
-  
-  // Confirm language setting and move to next state.
-  if (KEY_EQ(key_hit, KEY_START) || KEY_EQ(key_hit, KEY_A)) {
-    
-    // Disable & clear BG0.
-    lcdioBuffer.dispcnt &= ~DCNT_BG0;
-    clearBGMapBuffer(0);
-    setSyncBGMapFlagsByID(0);
-    
-    // Seed RNG.
-    sqran(gClock);
-    
-    setGameState(GAME_TITLE, TITLE_START);
-    return;
-  }
-  
   // Move cursor if applicable.
   id = langCursor->id;
   moved = moveCursorByInput((u32*)&langCursor,
@@ -140,8 +105,35 @@ const void langInput() {
   if (moved) {
     // Set previously selected grid-element's glowing colour back to default.
     setColour(clrB, (id << 4) + 258);
+    setSyncPalFlagsByID(id + 16);
+    gStateClock = 15;
   }
   
+  // Highlight selected language.
+  clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, ABS(15 - (gStateClock % 31)), 15, EASE_SQUARED));
+  setColour(clrC, (langCursor->id << 4) + 258);
+  setSyncPalFlagsByID(langCursor->id + 16);
+  
+  // Confirm language setting and move to next state.
+  if (KEY_EQ(key_hit, KEY_START) || KEY_EQ(key_hit, KEY_A)) {
+    if (langCursor->id >= LANG_COUNT)
+      // TODO disallowed sfx.
+      ;
+    else {
+      gLang = langCursor->id;
+      
+      // Disable & clear BG0.
+      lcdioBuffer.dispcnt &= ~DCNT_BG0;
+      clearBGMapBuffer(0);
+      setSyncBGMapFlagsByID(0);
+      
+      // Seed RNG.
+      sqran(gClock);
+      
+      setGameState(GAME_TITLE, TITLE_START);
+      return;
+    }
+  }
   gStateClock++;
 }
 
