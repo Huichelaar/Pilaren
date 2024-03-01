@@ -7,8 +7,10 @@ extern SCR_ENTRY bgmap[3][0x400];
 extern COLOR palBuffer[32*16];
 extern u32 syncPalFlags;
 extern OBJ_ATTR oamBuffer[128];
+extern s16 oamAffBuffer[32][4];
 extern u8 syncBGMapFlags;
 extern u8 oamBufferConsumed;
+extern u8 oamAffBufferConsumed;
 
 enum {
   BUFFER_FILL = 0,
@@ -34,8 +36,10 @@ const void clearBGMapBuffer();
 const void mergeOAMBuffer(OBJ_ATTR* oamArr, OBJ_ATTR* arrL, OBJ_ATTR* arrR, int lSize, int rSize);
 OBJ_ATTR* sortOAMBuffer(OBJ_ATTR* oamArr, int arrSize);
 const void flushOAMBuffer();
+const void flushAffOAMBuffer();
 const void clearOAMBuffer();
 int addToOAMBuffer(OBJ_ATTR* object, int priority);
+int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, int priority);
 const void flushCopyOnVBlankQueue();
 int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode);
 const void mapTilemap(SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);

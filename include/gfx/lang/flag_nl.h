@@ -4,11 +4,11 @@
 //======================================================================
 //
 //	flag_nl, 64x64@4, 
-//	+ palette 6 entries, not compressed
-//	+ 64 tiles not compressed
-//	Total size: 12 + 2048 = 2060
+//	+ palette 16 entries, not compressed
+//	+ 64 tiles Metatiled by 8x8 not compressed
+//	Total size: 32 + 2048 = 2080
 //
-//	Time-stamp: 2024-02-13, 18:43:11
+//	Time-stamp: 2024-03-01, 12:39:04
 //	Exported by Cearn's GBA Image Transmogrifier, v0.8.3
 //	( http://www.coranac.com/projects/#grit )
 //
@@ -20,8 +20,8 @@
 #define flag_nlTilesLen 2048
 extern const unsigned short flag_nlTiles[1024];
 
-#define flag_nlPalLen 12
-extern const unsigned short flag_nlPal[6];
+#define flag_nlPalLen 32
+extern const unsigned short flag_nlPal[16];
 
 #endif // GRIT_FLAG_NL_H
 

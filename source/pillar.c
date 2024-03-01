@@ -2,6 +2,7 @@
 #include <tonc.h>
 #include "videobuffer.h"
 #include "gfx/pil.h"
+#include "main.h"
 #include "pillar.h"
 
 EWRAM_DATA u32 pilCounter;
@@ -129,6 +130,28 @@ const void pilLoadTiles(struct Pillar* pil, int offsVRAM) {
     
     td = td->nextTiles;
   }
+}
+
+// Randomly pick a pillar and animate it.
+const void pilAnimRand(int freq) {
+  
+  // Only animate every freq frames.
+  if (gClock % freq)
+    return;
+  
+  const int id = qran_range(0, PIL_ARRAY_SIZE);
+  int animID = qran_range(PIL_ANIM_RAISE, PIL_ANIM_TURN+1);
+  
+  // Don't animate pillars that are already animating.
+  if (pilArray[id].animID != PIL_ANIM_IDLE)
+    return;
+  
+  if (animID == PIL_ANIM_RAISE && pilArray[id].height == PILLAR_HEIGHT_MAX)
+    animID = PIL_ANIM_LOWER;
+  else if (animID == PIL_ANIM_LOWER && pilArray[id].height == 0)
+    animID = PIL_ANIM_RAISE;
+  
+  pilSetAnim(&pilArray[id], animID);
 }
 
 // Continues animations of all pillars in pillar array.

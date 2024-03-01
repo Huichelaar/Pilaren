@@ -9,6 +9,7 @@ enum {
   LANG_START = 0,
   LANG_LOAD = 1,
   LANG_WAITFORINPUT = 2,
+  LANG_CLEAR = 3,
 };
 
 enum {
@@ -39,9 +40,11 @@ struct LanguageWidget {
 };
 extern const struct LanguageWidget langWidget[LANG_LIMIT];
 
+const void displayLang(int count);
 const void langStart();
 const void langLoad();
 const void langInput();
+const void langClear();
 const void langUpdate();
 
 #endif // LANG

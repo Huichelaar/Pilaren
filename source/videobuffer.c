@@ -6,8 +6,10 @@ EWRAM_DATA SCR_ENTRY bgmap[3][0x400] = {0};
 EWRAM_DATA COLOR palBuffer[32*16] = {0};
 EWRAM_DATA u32 syncPalFlags = 0;
 EWRAM_DATA OBJ_ATTR oamBuffer[128] = {0};
+EWRAM_DATA s16 oamAffBuffer[32][4] = {0};
 EWRAM_DATA u8 syncBGMapFlags = 0;
 EWRAM_DATA u8 oamBufferConsumed = 0;
+EWRAM_DATA u8 oamAffBufferConsumed = 0;
 EWRAM_DATA u8 copyOnVBlankQueueConsumed = 0;
 EWRAM_DATA u8 ewramPad1_8 = 0;
 EWRAM_DATA struct copyOnVBlankEntry copyOnVBlankQueue[1000] = {0};
@@ -151,6 +153,16 @@ const void flushOAMBuffer() {
   obj_copy(oam_mem, oamBuffer, oamBufferConsumed);
 }
 
+// move affine matrices in buffer to OAM affine.
+const void flushAffOAMBuffer() {
+  for (int i = 0; i < oamAffBufferConsumed; i++) {
+    obj_aff_mem[i].pa = oamAffBuffer[i][0];
+    obj_aff_mem[i].pb = oamAffBuffer[i][1];
+    obj_aff_mem[i].pc = oamAffBuffer[i][2];
+    obj_aff_mem[i].pd = oamAffBuffer[i][3];
+  }
+}
+
 const void clearOAMBuffer() {
   for (int i = 0; i < 128; i++) {
     oamBuffer[i].attr0 |= ATTR0_HIDE;
@@ -170,6 +182,30 @@ int addToOAMBuffer(OBJ_ATTR* object, int priority) {
   oamBufferConsumed++;
   
   return true;
+}
+
+// If either OAM or affine buffer is full, returns -1.
+// Otherwise, add object to OAMBuffer and affine matrix
+// to affine OAM buffer and return ID of affine matrix.
+int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, int priority) {
+  if (oamAffBufferConsumed >= 32)
+    return -1;
+  
+  // Set affine matrix params.
+  oamAffBuffer[oamAffBufferConsumed][0] = affMatr->pa;
+  oamAffBuffer[oamAffBufferConsumed][1] = affMatr->pb;
+  oamAffBuffer[oamAffBufferConsumed][2] = affMatr->pc;
+  oamAffBuffer[oamAffBufferConsumed][3] = affMatr->pd;
+  
+  // Set affine matrix ID.
+  object->attr1 &= ~ATTR1_AFF_ID_MASK;
+  object->attr1 |= (oamAffBufferConsumed << ATTR1_AFF_ID_SHIFT);
+  
+  if (!addToOAMBuffer(object, priority))
+    return -1;
+
+  oamAffBufferConsumed++;
+  return oamAffBufferConsumed - 1;
 }
 
 // Copy data as instructed in entries in queue.

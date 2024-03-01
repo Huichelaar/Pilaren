@@ -33,6 +33,24 @@ u8* menuID = (u8*)(ADR4);               // Used to keep track of which (sub)menu
 const void titleStart() {
   int pilID;
   
+  // Set video mode to 0.
+  lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D;
+  
+  // Set BG-control.
+  lcdioBuffer.bg0cnt = BG_BUILD(0, 28, 0, 0, 0, 0, 0);
+  lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 0, 0, 1, 0, 0);
+  lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 0, 0, 2, 0, 0);
+  lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 0, 3, 0, 0);
+  
+  // Clear BGMaps.
+  CpuFastFill(0, &bgmap[0], 0x800);
+  
+  // Clear background tiles & screen entries.
+  CBB_CLEAR(0);
+  CBB_CLEAR(1);
+  CBB_CLEAR(2);
+  CBB_CLEAR(3);
+  
   // Used by titleLoad to determine when to move to next state.
   *titleLoadProgress = 0;
   
@@ -113,11 +131,9 @@ const void titleStart() {
     PIL_TILE(2, 9)
   };
   
-  //int mask = (qran_range(0, 0x200) << 12) | qran_range(0, 0x1000); // Randomize pillars.
   struct Pillar pil;
   u8 clrs[6] = {PIL_CLRID_BLUE, PIL_CLRID_WHITE, PIL_CLRID_RED, PIL_CLRID_YELLOW, PIL_CLRID_RED, PIL_CLRID_RED};
   int clrMask;
-  u8 height;
   for (int i = 0; i < TITLE_PILLARCOUNT; i++) {
     
     // Set random colours.
@@ -136,21 +152,8 @@ const void titleStart() {
     // Hide pillar and add to hiddenPillars array.
     pilSetAnim(&pilArray[pilID], PIL_ANIM_HIDDEN);
     hiddenPillars[i] = pilID;
-    
-    // FIXME, randomize height whilst animating raising & lowering pillars.
-    // We favour height = 0 by mapping values > 3 to 0.
-    // This way, nine out of twelve results will be zero,
-    // assuming each value has the same chance of being generated.
-    //height = qran_range(0, 16);
-    //height >>= (height & 0xC);
-    height = 0;
-    
-    pilArray[pilID].height = height;
-    //pilArray[pilID].spriteData = pilSpriteData[pilArray[pilID].animID][pilArray[pilID].height];
-    //pilArray[pilID].updateTiles = true;
+    pilArray[pilID].height = 0;
   }
-  
-  //pilSetAnim(&pilArray[13], PIL_ANIM_TURN);
   
   setGameState(gGameState, TITLE_LOAD);
 }
@@ -203,30 +206,6 @@ const void titleLoad() {
     }
   }
   
-  /*
-  switch (gStateClock % 360) {
-    case 0:
-      pilArray[13].height = 1;
-      pilSetAnim(&pilArray[13], PIL_ANIM_LOWER);
-      break;
-    case 60:
-      pilSetAnim(&pilArray[13], PIL_ANIM_TURN);
-      break;
-    case 120:
-      pilSetAnim(&pilArray[13], PIL_ANIM_RAISE);
-      break;
-    case 180:
-      pilSetAnim(&pilArray[13], PIL_ANIM_RAISE);
-      break;
-    case 240:
-      pilSetAnim(&pilArray[13], PIL_ANIM_TURN);
-      break;
-    case 300:
-      pilSetAnim(&pilArray[13], PIL_ANIM_LOWER);
-      break;
-  }
-  */
-  
   pilRunAnims();
   pilDrawAll();
   
@@ -239,6 +218,7 @@ const void titleLoad() {
 const void titleInput() {
   
   runMenus();
+  pilAnimRand(60);
   pilRunAnims();
   pilDrawAll();
   

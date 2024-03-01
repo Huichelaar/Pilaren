@@ -62,9 +62,6 @@ const void reset(int forceReset) {
 
     // Enable vblank interrupt in lcdiobuffer.
     lcdioBuffer.dispstat |= DSTAT_VBL_IRQ;
-    
-    // Use objects as array.
-    lcdioBuffer.dispcnt |= DCNT_OBJ_1D;
 
     // The vblank interrupt must be enabled for VBlankIntrWait() to work.
     irq_add(II_VBLANK, VBlankHandler);
@@ -82,7 +79,9 @@ const void VBlankHandler() {
   // Clear OAM, Flush buffer to OAM, clear buffer.
   oam_init(oam_mem, 128);
   flushOAMBuffer();
+  flushAffOAMBuffer();
   clearOAMBuffer();
+  oamAffBufferConsumed = 0;
   
   // Copy data in copyOnVBlankQueue.
   flushCopyOnVBlankQueue();
