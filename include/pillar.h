@@ -1,7 +1,7 @@
 #ifndef PILLAR
 #define PILLAR
 
-#define PIL_ARRAY_SIZE 20
+#define PIL_ARRAY_MAX 20
 #define PILLAR_HEIGHT_MAX 3
 #define PIL_TILE_WIDTH 17
 #define PIL_TILE_HEIGHT 17
@@ -13,7 +13,7 @@ extern s16 pilCamY;
 extern const COLOR pilColourByID[4];
 
 struct Pillar {
-  int pilID;
+  int id;
   u8 colour[6];                               // colour of each pane of pillar.
   u8 turned;                                  // Pillars can be in one of two positions.
   u8 animID;                                  // What animation pillar is performing.
@@ -29,7 +29,7 @@ struct Pillar {
   struct Pillar* up;                          // colour-matching
   struct Pillar* down;                        // rows & columns.
 };
-extern struct Pillar pilArray[PIL_ARRAY_SIZE];
+extern struct Pillar pilArray[PIL_ARRAY_MAX];
 
 enum {
   // Pillar animation states.
@@ -67,10 +67,11 @@ struct PillarTileData {
   const struct PillarTileData* nextTiles;
 };
 
+const void pilGenerateRandColours(u8* clrs);
 const void initPilArray();
 struct Pillar pilConstr(u8* colours, s16 x, s16 y);
 int addPilToPilArray(struct Pillar* pil);
-const void removePil(int pilID);
+//const void removePil(int pilID);
 struct Pillar* genRandPil();
 const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
 const void pilSetAnim(struct Pillar* pil, u8 animID);

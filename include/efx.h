@@ -37,8 +37,10 @@ enum {
 enum {
   // Easing function IDs.
   EASE_LINEAR = 0,
-  EASE_SQUARED = 1,
-  EASE_CUBIC = 2
+  EASE_IN_QUADRATIC = 1,
+  EASE_OUT_QUADRATIC = 2,
+  EASE_IN_CUBIC = 3,
+  EASE_OUT_CUBIC = 4
 };
 
 int ease(int start, int end, int curX, int endX, int easeFunc);

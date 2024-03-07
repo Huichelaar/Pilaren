@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <tonc.h>
-#include "videobuffer.h"
+#include "video.h"
 #include "gfx/pil.h"
 #include "main.h"
 #include "pillar.h"
@@ -8,16 +8,26 @@
 EWRAM_DATA u32 pilCounter;
 EWRAM_DATA s16 pilCamX;
 EWRAM_DATA s16 pilCamY;
-EWRAM_DATA struct Pillar pilArray[PIL_ARRAY_SIZE];
+EWRAM_DATA struct Pillar pilArray[PIL_ARRAY_MAX];
 const COLOR pilColourByID[4] = {PIL_CLR_WHITE, PIL_CLR_BLUE, PIL_CLR_RED, PIL_CLR_YELLOW};
 
-const void initPilArray() {
-  for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
-    pilArray[i].pilID = 0;
+// Assumes colours is a six element array.
+// Fills each element with a colour.
+const void pilGenerateRandColours(u8* clrs) {
+  int clrMask = qran_range(0, 0x1000);
+    for (int i = 0; i < 6; i++) {
+      clrs[i] = 3 & clrMask;
+      clrMask >>= 2;
+    }
+}
+
+const void initPilArray(int x, int y) {
+  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
+    pilArray[i].id = 0;
   }
   pilCounter = 0;
-  pilCamX = 0;
-  pilCamY = 0;
+  pilCamX = x;
+  pilCamY = y;
 }
 
 struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
@@ -25,7 +35,7 @@ struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
   OBJ_ATTR objMask;
   obj_set_attr(&objMask, 0, 0, 0);
   
-  pil.pilID = -1;
+  pil.id = -1;
   for (int i = 0; i < 6; i++) { pil.colour[i] = colours[i]; }
   pil.turned = false;
   pil.animID = PIL_ANIM_HIDDEN;
@@ -49,15 +59,15 @@ struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
 // Add Pillar to array. Return pilID in array if success.
 // Return -1 if pillar could not be added to array.
 int addPilToPilArray(struct Pillar* pil) {
-  if (pilCounter >= PIL_ARRAY_SIZE)
+  if (pilCounter >= PIL_ARRAY_MAX)
     return false;
   
-  for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
-    if (pilArray[i].pilID != 0)
+  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
+    if (pilArray[i].id != 0)
       continue;
     
     // Copy pillar to array entry.
-    pilArray[i].pilID = i+1;
+    pilArray[i].id = i+1;
     
     for (int j = 0; j < 6; j++) { pilArray[i].colour[j] = pil->colour[j]; }
     pilArray[i].turned = pil->turned;
@@ -139,7 +149,7 @@ const void pilAnimRand(int freq) {
   if (gClock % freq)
     return;
   
-  const int id = qran_range(0, PIL_ARRAY_SIZE);
+  const int id = qran_range(0, PIL_ARRAY_MAX);
   int animID = qran_range(PIL_ANIM_RAISE, PIL_ANIM_TURN+1);
   
   // Don't animate pillars that are already animating.
@@ -159,8 +169,8 @@ const void pilAnimRand(int freq) {
 // FIXME, do we need &pilArray[i] when calling pilSetAnim? Can't we just give pil variable?
 const void pilRunAnims() {
   struct Pillar* pil;
-  for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
-    if (!pilArray[i].pilID)
+  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
+    if (!pilArray[i].id)
       continue;
     
     pil = &pilArray[i];
@@ -237,10 +247,10 @@ const void pilRunAnims() {
 const void pilDrawAll() {
   struct Pillar* pil;
   s16 x, y;
-  OBJ_ATTR obj = {0, 0, 0, 0};;
+  OBJ_ATTR obj = {0, 0, 0, 0};
   
-  for (int i = 0; i < PIL_ARRAY_SIZE; i++) {
-    if (!pilArray[i].pilID)
+  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
+    if (!pilArray[i].id)
       continue;
     
     pil = &pilArray[i];
@@ -280,5 +290,3 @@ const void pilDrawAll() {
     addToOAMBuffer(&obj, -y);
   }
 }
-
-//const void pilRaise(

@@ -1,5 +1,5 @@
-#ifndef VIDEOBUFFER
-#define VIDEOBUFFER
+#ifndef VIDEO
+#define VIDEO
 
 #define VRAMBUFFER 0x02020000   // Used to buffer tiles to be sent to VRAM on next VBlank. size: 0x18000 bytes.
 
@@ -44,4 +44,4 @@ const void flushCopyOnVBlankQueue();
 int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode);
 const void mapTilemap(SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);
 
-#endif // VIDEOBUFFER
+#endif // VIDEO

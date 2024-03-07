@@ -11,6 +11,7 @@ enum {
   GAME_START = 0,
 	GAME_RESET = 1,
   GAME_TITLE = 2,
+  GAME_PUZZLE = 3,
 };
 extern u32 gGameState;
 extern u32 gGenericState;

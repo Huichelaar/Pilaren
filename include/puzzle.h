@@ -13,10 +13,23 @@ extern u8 puzStageCur;
 extern u8 puzLength;
 extern u8 puzBreadth;
 extern u8 puzHeight;
-extern u8 puzPad[3];
+extern u8 puzPad;
+extern s16 initPilCamY;
+extern s16 initBGOfsY;
+extern s16 initBGOfsY2;
 
 extern u8* const puzDim[3];
 
+enum {
+  // puzzle states.
+  PUZZLE_TRANSITION1 = 0,
+  PUZZLE_TRANSITION2 = 1,
+};
+
+const void puzzleGenerate(int length, int breadth, int height);
 const void puzzleInit();
+const void puzzleTransition1();
+const void puzzleTransition2();
+const void puzzleUpdate();
 
 #endif // PUZZLE

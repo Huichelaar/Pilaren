@@ -5,7 +5,7 @@
 #include "lang.h"
 #include "efx.h"
 #include "lcdiobuffer.h"
-#include "videobuffer.h"
+#include "video.h"
 #include "main.h"
 #include "menu.h"
 
@@ -111,7 +111,7 @@ int addMenu(const struct Menu* menu) {
 const void drawMenuCursor(const struct MenuItem* mi) {
   OBJ_ATTR obj = {0, 0, 0, 0};
   
-  int xOffs = ease(1, 3, ABS(16 - (gClock % 33)), 16, EASE_SQUARED);
+  int xOffs = ease(1, 3, ABS(16 - (gClock % 33)), 16, EASE_IN_QUADRATIC);
   
   obj.attr0 = (mi->menu->y + mi->yOffs) | ATTR0_TALL;
   obj.attr1 = (mi->menu->x + mi->xOffs + xOffs) | ATTR1_SIZE_8x16;
@@ -123,7 +123,7 @@ const void drawMenuCursor(const struct MenuItem* mi) {
 const void drawMenuCursorFlip(const struct MenuItem* mi) {
   OBJ_ATTR obj = {0, 0, 0, 0};
   
-  int xOffs = ease(3, 1, ABS(16 - (gClock % 33)), 16, EASE_SQUARED);
+  int xOffs = ease(3, 1, ABS(16 - (gClock % 33)), 16, EASE_IN_QUADRATIC);
   
   obj.attr0 = (mi->menu->y + mi->yOffs) | ATTR0_TALL;
   obj.attr1 = (-17 + mi->menu->x + mi->xOffs + xOffs) | ATTR1_HFLIP | ATTR1_SIZE_8x16;

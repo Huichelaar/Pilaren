@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <tonc.h>
-#include "videobuffer.h"
+#include "video.h"
 
 EWRAM_DATA SCR_ENTRY bgmap[3][0x400] = {0};
 EWRAM_DATA COLOR palBuffer[32*16] = {0};

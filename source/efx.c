@@ -7,6 +7,8 @@ IWRAM_DATA u32 HBlankBGOFSCNT = {0};
 
 // Ease values over an interval.
 int ease(int start, int end, int curX, int endX, int easeFunc) {
+  const int distRange = end - start;
+  const int inteRange = endX - curX;
   int num;
   
   // Don't divide by zero.
@@ -15,16 +17,24 @@ int ease(int start, int end, int curX, int endX, int easeFunc) {
   
   switch (easeFunc) {
     case EASE_LINEAR:
-      num = (end - start) * curX;
+      num = distRange * curX;
       return start + num / endX;
       
-    case EASE_SQUARED:
-      num = (end - start) * curX * curX;
+    case EASE_IN_QUADRATIC:
+      num = distRange * curX * curX;
       return start + num / (endX * endX);
       
-    case EASE_CUBIC:
-      num = (end - start) * curX * curX * curX;
+    case EASE_OUT_QUADRATIC:
+      num = distRange * inteRange * inteRange;
+      return start + distRange - num / (endX * endX);
+      
+    case EASE_IN_CUBIC:
+      num = distRange * curX * curX * curX;
       return start + num / (endX * endX * endX);
+    
+    case EASE_OUT_CUBIC:
+      num = distRange * inteRange * inteRange * inteRange;
+      return start + distRange - num / (endX * endX * endX);
     
     default:
       return 0;

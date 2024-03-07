@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <tonc.h>
 #include "lcdiobuffer.h"
-#include "videobuffer.h"
+#include "video.h"
 #include "efx.h"
 #include "title.h"
 #include "main.h"
@@ -96,7 +96,7 @@ const void langLoad() {
     return;
   }
   
-  clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, gStateClock, duration, EASE_SQUARED));
+  clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, gStateClock, duration, EASE_IN_QUADRATIC));
   setColour(clrC, 0);
   setSyncPalFlagsByID(0);
 }
@@ -129,7 +129,7 @@ const void langInput() {
   }
   
   // Highlight selected language.
-  clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, ABS(15 - (gStateClock % 31)), 15, EASE_SQUARED));
+  clr_blend(&clrA, &clrB, &clrC, 1, ease(0, 0x1F, ABS(15 - (gStateClock % 31)), 15, EASE_IN_QUADRATIC));
   setColour(clrC, (langCursor->id << 4) + 258);
   setSyncPalFlagsByID(langCursor->id + 16);
   

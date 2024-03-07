@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <tonc.h>
 #include "efx.h"
-#include "videobuffer.h"
+#include "video.h"
 #include "lcdiobuffer.h"
 #include "lang.h"
 #include "title.h"
+#include "puzzle.h"
 #include "main.h"
 
 #define CURSORLOOP_INIT_DELAY 30  // After CURSORLOOP_INIT_DELAY frames,
@@ -116,6 +117,9 @@ const void update() {
       break;
     case GAME_TITLE:
       titleUpdate();
+      break;
+    case GAME_PUZZLE:
+      puzzleUpdate();
       break;
   }
 }

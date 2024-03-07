@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <tonc.h>
-#include "videobuffer.h"
+#include "video.h"
 #include "lcdiobuffer.h"
 #include "efx.h"
 #include "gfx/pil.h"
@@ -38,8 +38,8 @@ const void titleStart() {
   
   // Set BG-control.
   lcdioBuffer.bg0cnt = BG_BUILD(0, 28, 0, 0, 0, 0, 0);
-  lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 0, 0, 1, 0, 0);
-  lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 0, 0, 2, 0, 0);
+  lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 2, 0, 1, 0, 0);
+  lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 2, 0, 2, 0, 0);
   lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 0, 3, 0, 0);
   
   // Clear BGMaps.
@@ -103,9 +103,7 @@ const void titleStart() {
   setSyncPalFlagsByID(16);
   
   // Setup flavour pillars.
-  initPilArray();
-  pilCamX = -104;
-  pilCamY = 80;
+  initPilArray(-104, 80);
   
   // Build pillars.
   const s16 titlePilCoords[TITLE_PILLARCOUNT][2] = {
@@ -132,16 +130,11 @@ const void titleStart() {
   };
   
   struct Pillar pil;
-  u8 clrs[6] = {PIL_CLRID_BLUE, PIL_CLRID_WHITE, PIL_CLRID_RED, PIL_CLRID_YELLOW, PIL_CLRID_RED, PIL_CLRID_RED};
-  int clrMask;
+  u8 clrs[6];
   for (int i = 0; i < TITLE_PILLARCOUNT; i++) {
     
     // Set random colours.
-    clrMask = qran_range(0, 0x1000);
-    for (int j = 0; j < 6; j++) {
-      clrs[j] = 3 & clrMask;
-      clrMask >>= 2;
-    }
+    pilGenerateRandColours(clrs);
     
     // Build pillar and add to pilArray.
     pil = pilConstr(clrs, titlePilCoords[i][0], titlePilCoords[i][1]);
@@ -159,7 +152,7 @@ const void titleStart() {
 }
 
 const void titleLoad() {
-  int pilID, count, id, freq, bld, dist;
+  int pilID, count, id, freq, bld, scrl, dist;
   
   // Unhide one of the pillars every few frames.
   if (!(*titleLoadProgress & TITLELOAD_PILLARS)) {
@@ -185,10 +178,13 @@ const void titleLoad() {
     freq = 4000 - gStateClock * 100;
     if (freq > 0) {
       generateSinusoid(freq, 8, 100);
-      bld = ease(0, 16, freq / 100, 40, EASE_SQUARED);
+      bld = ease(0, 16, freq / 100, 40, EASE_IN_QUADRATIC);
+      scrl = ease(-6, 0, freq / 100, 40, EASE_IN_QUADRATIC);
       lcdioBuffer.bldalpha = BLDA_BUILD(16 - bld, bld);
+      lcdioBuffer.bg3vofs = scrl;
     } else {
       lcdioBuffer.bldcnt = 0;
+      lcdioBuffer.bg3vofs = -6;
       lcdioBuffer.dispstat &= ~DSTAT_HBL_IRQ;         // Disable hblank interrupt in lcdiobuffer.
       irq_delete(II_HBLANK);
       *titleLoadProgress |= TITLELOAD_TITLE;          // Finished sinusoiding title.
@@ -198,7 +194,7 @@ const void titleLoad() {
   // Expand menu window.
   if (!(*titleLoadProgress & TITLELOAD_MENU)) {
     if (gStateClock < 40) {
-      dist = ease(0, 50, gStateClock, 40, EASE_CUBIC);
+      dist = ease(0, 50, gStateClock, 40, EASE_IN_CUBIC);
       lcdioBuffer.win0v = WIN_BUILD(102+dist, 102-dist);
     } else {
       lcdioBuffer.dispcnt &= ~DCNT_WIN0;
