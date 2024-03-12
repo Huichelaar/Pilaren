@@ -24,12 +24,14 @@ enum {
   // puzzle states.
   PUZZLE_TRANSITION1 = 0,
   PUZZLE_TRANSITION2 = 1,
+  PUZZLE_IDLE = 2,
 };
 
 const void puzzleGenerate(int length, int breadth, int height);
 const void puzzleInit();
 const void puzzleTransition1();
 const void puzzleTransition2();
+const void puzzleIdle();
 const void puzzleUpdate();
 
 #endif // PUZZLE

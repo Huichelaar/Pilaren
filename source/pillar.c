@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <tonc.h>
+#include "efx.h"
 #include "video.h"
+#include "lcdiobuffer.h"
 #include "gfx/pil.h"
 #include "main.h"
 #include "pillar.h"
@@ -52,6 +54,10 @@ struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
   pil.right = NULL;
   pil.up = NULL;
   pil.down = NULL;
+  pil.leftUp = NULL;
+  pil.leftDown = NULL;
+  pil.rightUp = NULL;
+  pil.rightDown = NULL;
   
   return pil;
 }
@@ -241,6 +247,59 @@ const void pilRunAnims() {
       pil->updateTiles = false;
     }
   }
+}
+
+// Highlight given pillar using alternate palette.
+const void pilDrawHighlight(struct Pillar* pil, int timer) {
+  int palID, bld;
+  const COLOR clrs2[7] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
+  COLOR bldClrs[7];
+  s16 x, y;
+  OBJ_ATTR obj = {0, 0, 0, 0};
+  
+  // Don't draw hidden pillars.
+  if (pil->animID == PIL_ANIM_HIDDEN)
+    return;
+  
+  // Pillars are displayed at a 45 degree angle.
+  x = (pil->x - pil->y) - pilCamX;
+  y = (pil->x + pil->y) - pilCamY;
+  
+  // Pillars are four tiles (32 pixels) wide
+  // and eight tiles (64 pixels) tall.
+  if (x <= -32 || x >= SCREEN_WIDTH ||
+      y <= -64 || y >= SCREEN_HEIGHT)
+    return;       // Offscreen; Don't draw.
+  
+  // Build object based on spriteData member.
+  obj_copy(&obj, &pil->spriteData->obj, 1);
+  
+  // Add coordinates.
+  obj.attr0 = (obj.attr0 & 0xFF00) | ((obj.attr0 + y) & ATTR0_Y_MASK);
+  obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
+  
+  // Set tile.
+  obj.attr2 |= (((pil->id - 1) << 5) & ATTR2_ID_MASK);
+  
+  // Mask with pillar specific attributes (no coordinates!)
+  obj.attr0 |= pil->objMask.attr0;
+  obj.attr1 |= pil->objMask.attr1;
+  obj.attr2 |= pil->objMask.attr2;
+  
+  // Use next palette index.
+  obj.attr2 += 0x1000;
+  palID = ((obj.attr2 & 0xF000) >> 12) + 16;
+  
+  // Blend palette.
+  bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
+  clr_blend(pilPal, clrs2, bldClrs, 7, bld);
+  loadColours(bldClrs, palID << 4, 7);
+  setSyncPalFlagsByID(palID);
+  
+  // Draw to screen.
+  // Priority determined by Y-value. Higher pillars should be drawn before lower pillars.
+  // Therefore, we flip the importance of Y, by multiplying it by -1.
+  addToOAMBuffer(&obj, -y);
 }
 
 // Draw all pillars in pillar array.

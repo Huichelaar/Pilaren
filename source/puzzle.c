@@ -17,13 +17,14 @@ EWRAM_DATA u8 puzPad;
 EWRAM_DATA s16 initPilCamY;
 EWRAM_DATA s16 initBGOfsY;
 EWRAM_DATA s16 initBGOfsY2;
+EWRAM_DATA struct Pillar* selPil;
 
 u8* const puzDim[3] = {&puzLength, &puzBreadth, &puzHeight};
 
 // Creates a puzzle of given dimensions.
 const void puzzleGenerate(int length, int breadth, int height) {
   struct Pillar pil;
-  int row, col, i, j, matchHeight, matchColour, pilID;
+  int row, col, i, j, matchHeight, matchColour, id;
   int size = length * breadth;
   u8 clrs[length][breadth][6];
   u8 turnpillars[size];
@@ -59,12 +60,59 @@ const void puzzleGenerate(int length, int breadth, int height) {
   }
   
   // Create pillars.
+  initPilArray(0, 0);
   for (row = 0; row < length; row++) {
     for (col = 0; col < breadth; col++) {
       pil = pilConstr(clrs[row][col], col * PIL_TILE_WIDTH, row * PIL_TILE_HEIGHT);
-      pilID = addPilToPilArray(&pil);
-      pilArray[pilID].height = height;
-      pilSetAnim(&pilArray[pilID], PIL_ANIM_IDLE);
+      id = addPilToPilArray(&pil);
+      pilArray[id].height = height;
+      pilSetAnim(&pilArray[id], PIL_ANIM_IDLE);
+      
+      // Set neighbouring pillar pointers.
+      pilArray[id].left = (col == 0 && row == 0) ? &pilArray[length * breadth - 1] : &pilArray[id - 1];
+      pilArray[id].right = (col == breadth - 1 && row == length - 1) ? &pilArray[0] : &pilArray[id + 1];
+      pilArray[id].up = (id < breadth) ? &pilArray[breadth * length - ((breadth - id) % breadth) - 1] : &pilArray[id - breadth];
+      pilArray[id].down = (id >= breadth * (length - 1)) ? &pilArray[(id + 1 - breadth * (length - 1)) % breadth] : &pilArray[id + breadth];
+      
+      // LeftUp.
+      if (row == length - 1 && col == 0)
+        pilArray[id].leftUp = &pilArray[breadth - 1];
+      else if (col == 0)
+        pilArray[id].leftUp = &pilArray[id + breadth + min(breadth - 1, length - row - 2) * (breadth + 1)];
+      else if (row == 0)
+        pilArray[id].leftUp = &pilArray[id - 1 +       min(length - 1,  breadth - col)    * (breadth + 1)];
+      else
+        pilArray[id].leftUp = &pilArray[id - breadth - 1];
+      
+      // LeftDown.
+      if (row == 0 && col == 0)
+        pilArray[id].leftDown = &pilArray[breadth * length - 1];
+      else if (col == 0)
+        pilArray[id].leftDown = &pilArray[id - breadth - min(breadth - 1, row - 1)  * (breadth - 1)];
+      else if (row == length - 1)
+        pilArray[id].leftDown = &pilArray[id - breadth - min(length - 2,  breadth - col - 1) * (breadth - 1)];
+      else
+        pilArray[id].leftDown = &pilArray[id + breadth - 1];
+      
+      // RightUp.
+      if (col == breadth - 1 && row == length - 1)
+        pilArray[id].rightUp = &pilArray[0];
+      else if (col == breadth - 1)
+        pilArray[id].rightUp = &pilArray[id + breadth + min(breadth - 1, length - row - 2) * (breadth - 1)];
+      else if (row == 0)
+        pilArray[id].rightUp = &pilArray[id + breadth + min(length - 2,  col)              * (breadth - 1)];
+      else
+        pilArray[id].rightUp = &pilArray[id - breadth + 1];
+      
+      // RightDown.
+      if (col == breadth - 1 && row == 0)
+        pilArray[id].rightDown = &pilArray[breadth * (length - 1)];
+      else if (row == length - 1)
+        pilArray[id].rightDown = &pilArray[id - breadth - min(length - 2,  col)     * (breadth + 1)];
+      else if (col == breadth - 1)
+        pilArray[id].rightDown = &pilArray[id - breadth - min(breadth - 1, row - 1) * (breadth + 1)];
+      else
+        pilArray[id].rightDown = &pilArray[id + breadth + 1];
     }
   }
   
@@ -73,8 +121,8 @@ const void puzzleGenerate(int length, int breadth, int height) {
     turnpillars[i] = i;
   j = sampleSize;
   for (i = 0; i < sampleSize; i++) {
-    pilID = turnpillars[qran_range(0, j)];
-    pilArray[pilID].turned = true;
+    id = turnpillars[qran_range(0, j)];
+    pilArray[id].turned = true;
     turnpillars[i] = turnpillars[j];
     j--;
   }
@@ -190,16 +238,50 @@ const void puzzleTransition1() {
 
 const void puzzleTransition2() {
   if (gStateClock == 0) {
-    initPilArray(-104, 160);
     puzzleGenerate(puzLength, puzBreadth, puzHeight);
+    pilCamX = -104;
+    pilCamY = 160;
   } else if (gStateClock < 45) {
     pilCamY = ease(160, 14, gStateClock, 45, EASE_OUT_QUADRATIC);
   } else {
     pilCamY = 14;
+    
+    selPil = &pilArray[0];
+    
+    setGameState(gGameState, PUZZLE_IDLE);
+    gStateClock = 14;
   }
   
   pilRunAnims();
   pilDrawAll();
+  gStateClock++;
+}
+
+const void puzzleIdle() {
+  struct Pillar* prev;
+  int moved;
+  
+  // Handle fire button input.
+  // TODO
+  
+  // Handle D-pad input.
+  prev = selPil;
+  moved = moveCursorByInput((u32*)&selPil,
+                            (u32)selPil->leftDown,
+                            (u32)selPil->rightUp,
+                            (u32)selPil->leftUp,
+                            (u32)selPil->rightDown,
+                            (u32)selPil->left,
+                            (u32)selPil->down,
+                            (u32)selPil->up,
+                            (u32)selPil->right);
+  if (moved)
+    ; // TODO
+  
+  pilRunAnims();
+  pilDrawHighlight(selPil, gStateClock);
+  pilDrawAll();
+  
   gStateClock++;
 }
 
@@ -210,6 +292,9 @@ const void puzzleUpdate() {
       break;
     case PUZZLE_TRANSITION2:
       puzzleTransition2();
+      break;
+    case PUZZLE_IDLE:
+      puzzleIdle();
       break;
   }
 }

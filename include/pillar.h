@@ -28,6 +28,10 @@ struct Pillar {
   struct Pillar* right;                       // easier to find
   struct Pillar* up;                          // colour-matching
   struct Pillar* down;                        // rows & columns.
+  struct Pillar* leftUp;
+  struct Pillar* leftDown;
+  struct Pillar* rightUp;
+  struct Pillar* rightDown;
 };
 extern struct Pillar pilArray[PIL_ARRAY_MAX];
 
@@ -77,6 +81,7 @@ const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
 const void pilSetAnim(struct Pillar* pil, u8 animID);
 const void pilAnimRand(int freq);
 const void pilRunAnims();
+const void pilDrawHighlight(struct Pillar* pil, int timer);
 const void pilDrawAll();
 
 #endif // PILLAR
