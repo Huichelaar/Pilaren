@@ -14,7 +14,8 @@ extern const COLOR pilColourByID[4];
 
 struct Pillar {
   int id;
-  u8 colour[6];                               // colour of each pane of pillar.
+  u8 colour[6];                               // Lower nybble: colour of each pane of pillar. 
+                                              // Upper nybble: true if pane matches with other panes in row/col.
   u8 turned;                                  // Pillars can be in one of two positions.
   u8 animID;                                  // What animation pillar is performing.
   u16 animTimer;                              // How far along pillar is in animation.
@@ -81,6 +82,7 @@ const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
 const void pilSetAnim(struct Pillar* pil, u8 animID);
 const void pilAnimRand(int freq);
 const void pilRunAnims();
+int pilCalcCoords(struct Pillar* pil, s16* x, s16* y);
 const void pilDrawHighlight(struct Pillar* pil, int timer);
 const void pilDrawAll();
 

@@ -13,7 +13,7 @@ extern u8 puzStageCur;
 extern u8 puzLength;
 extern u8 puzBreadth;
 extern u8 puzHeight;
-extern u8 puzPad;
+extern u8 puzSolveStatus;
 extern s16 initPilCamY;
 extern s16 initBGOfsY;
 extern s16 initBGOfsY2;
@@ -27,7 +27,10 @@ enum {
   PUZZLE_IDLE = 2,
 };
 
-const void puzzleGenerate(int length, int breadth, int height);
+const void puzzleMatchRowOrCol(int id, int col);
+int puzzleIsSolved();
+const void puzzleDrawMatch(int timer);
+const void puzzleGenerate();
 const void puzzleInit();
 const void puzzleTransition1();
 const void puzzleTransition2();

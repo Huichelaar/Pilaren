@@ -117,7 +117,7 @@ const void drawMenuCursor(const struct MenuItem* mi) {
   obj.attr1 = (mi->menu->x + mi->xOffs + xOffs) | ATTR1_SIZE_8x16;
   obj.attr2 = (mi->menu->palIDCursor << ATTR2_PALBANK_SHIFT) | 0x380;
   
-  addToOAMBuffer(&obj, 0);
+  addToOAMBuffer(&obj, LAYER_COUNT - 1);
 }
 
 const void drawMenuCursorFlip(const struct MenuItem* mi) {
@@ -129,7 +129,7 @@ const void drawMenuCursorFlip(const struct MenuItem* mi) {
   obj.attr1 = (-17 + mi->menu->x + mi->xOffs + xOffs) | ATTR1_HFLIP | ATTR1_SIZE_8x16;
   obj.attr2 = (mi->menu->palIDCursor << ATTR2_PALBANK_SHIFT) | 0x380;
   
-  addToOAMBuffer(&obj, 0);
+  addToOAMBuffer(&obj, LAYER_COUNT - 1);
 }
 
 int runMenus() {

@@ -18,6 +18,7 @@ EWRAM_DATA const struct LanguageWidget* langCursor;
 // Display language icons.
 const void displayLang(int count) {
   OBJ_ATTR langObj = {0, 0, 0, 0};
+  s8 layer;
   
   for (int i = 0; i < count; i++) {
     langObj.attr0 = langWidget[i].y | ATTR0_SQUARE;
@@ -25,7 +26,8 @@ const void displayLang(int count) {
     langObj.attr1 = langWidget[i].x | ATTR1_SIZE_64x64;
     langObj.attr2 = (i << ATTR2_PALBANK_SHIFT) | (i << 6);
     langObj.attr2 |= langCursor->id == i ? 0 : ATTR2_PRIO(1);
-    addToOAMBuffer(&langObj, i);
+    layer = langCursor->id == i ? 1 : 0;
+    addToOAMBuffer(&langObj, layer);
   }
 }
 

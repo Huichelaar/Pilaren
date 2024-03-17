@@ -47,7 +47,7 @@ const void reset(int forceReset) {
     syncPalFlags = 0;
     oam_init(oamBuffer, 128);
     syncBGMapFlags = 0;
-    oamBufferConsumed = 0;
+    clearOAMBuffers();
     
     for (int i = 0; i < 10; i++)
       keyHeld[i] = 0;
@@ -81,8 +81,7 @@ const void VBlankHandler() {
   oam_init(oam_mem, 128);
   flushOAMBuffer();
   flushAffOAMBuffer();
-  clearOAMBuffer();
-  oamAffBufferConsumed = 0;
+  clearOAMBuffers();
   
   // Copy data in copyOnVBlankQueue.
   flushCopyOnVBlankQueue();

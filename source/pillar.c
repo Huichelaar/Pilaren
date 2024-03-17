@@ -133,7 +133,7 @@ const void pilLoadTiles(struct Pillar* pil, int offsVRAM) {
     for (int i = 0; i < 6; i++) {
       j = (i + 3 * pil->turned) % 6;    // Invert pane influence if pillar is turned.
       if (td->paneInfluence[j] != 0)
-        srcOffs += pil->colour[i] << td->paneInfluence[j];
+        srcOffs += (pil->colour[i] & 3) << td->paneInfluence[j];
     }
     
     src = (int)&pilTiles + srcOffs;
@@ -249,6 +249,23 @@ const void pilRunAnims() {
   }
 }
 
+// Calculates coordinates where pillar would be drawn,
+// based on pilCamY and pilCamX. Returns false if pillar
+// would be drawn offscreen, true otherwise.
+// layer, x and y args aren't used, but are used to return
+// layer, x and y coordinates and of where pillar would be drawn.
+int pilCalcCoords(struct Pillar* pil, s16* x, s16* y) {
+  *x = (pil->x - pil->y) - pilCamX;
+  *y = (pil->x + pil->y) - pilCamY;
+  
+  // Pillars are four tiles (32 pixels) wide
+  // and eight tiles (64 pixels) tall.
+  if (*x <= -32 || *x >= SCREEN_WIDTH ||
+      *y <= -64 || *y >= SCREEN_HEIGHT)
+    return false;       // Offscreen.
+  return true;
+}
+
 // Highlight given pillar using alternate palette.
 const void pilDrawHighlight(struct Pillar* pil, int timer) {
   int palID, bld;
@@ -261,14 +278,7 @@ const void pilDrawHighlight(struct Pillar* pil, int timer) {
   if (pil->animID == PIL_ANIM_HIDDEN)
     return;
   
-  // Pillars are displayed at a 45 degree angle.
-  x = (pil->x - pil->y) - pilCamX;
-  y = (pil->x + pil->y) - pilCamY;
-  
-  // Pillars are four tiles (32 pixels) wide
-  // and eight tiles (64 pixels) tall.
-  if (x <= -32 || x >= SCREEN_WIDTH ||
-      y <= -64 || y >= SCREEN_HEIGHT)
+  if (!pilCalcCoords(pil, &x, &y))
     return;       // Offscreen; Don't draw.
   
   // Build object based on spriteData member.
@@ -297,9 +307,8 @@ const void pilDrawHighlight(struct Pillar* pil, int timer) {
   setSyncPalFlagsByID(palID);
   
   // Draw to screen.
-  // Priority determined by Y-value. Higher pillars should be drawn before lower pillars.
-  // Therefore, we flip the importance of Y, by multiplying it by -1.
-  addToOAMBuffer(&obj, -y);
+  // Pillars are 64 pixels tall, hence why we add 63.
+  addToOAMBuffer(&obj, VERT_OBJ_LAYER(y + 63));
 }
 
 // Draw all pillars in pillar array.
@@ -318,14 +327,7 @@ const void pilDrawAll() {
     if (pil->animID == PIL_ANIM_HIDDEN)
       continue;
     
-    // Pillars are displayed at a 45 degree angle.
-    x = (pil->x - pil->y) - pilCamX;
-    y = (pil->x + pil->y) - pilCamY;
-    
-    // Pillars are four tiles (32 pixels) wide
-    // and eight tiles (64 pixels) tall.
-    if (x <= -32 || x >= SCREEN_WIDTH ||
-        y <= -64 || y >= SCREEN_HEIGHT)
+    if (!pilCalcCoords(pil, &x, &y))
       continue;     // Offscreen; Don't draw.
     
     // Build object based on spriteData member.
@@ -344,8 +346,7 @@ const void pilDrawAll() {
     obj.attr2 |= pil->objMask.attr2;
     
     // Draw to screen.
-    // Priority determined by Y-value. Higher pillars should be drawn before lower pillars.
-    // Therefore, we flip the importance of Y, by multiplying it by -1.
-    addToOAMBuffer(&obj, -y);
+    // Pillars are 64 pixels tall, hence why we add 63.
+    addToOAMBuffer(&obj, VERT_OBJ_LAYER(y + 63));
   }
 }

@@ -8,10 +8,13 @@ EWRAM_DATA u32 syncPalFlags = 0;
 EWRAM_DATA OBJ_ATTR oamBuffer[128] = {0};
 EWRAM_DATA s16 oamAffBuffer[32][4] = {0};
 EWRAM_DATA u8 syncBGMapFlags = 0;
-EWRAM_DATA u8 oamBufferConsumed = 0;
-EWRAM_DATA u8 oamAffBufferConsumed = 0;
+EWRAM_DATA u8 oamIndex = 0;
+EWRAM_DATA u8 oamAffIndex = 0;
 EWRAM_DATA u8 copyOnVBlankQueueConsumed = 0;
 EWRAM_DATA u8 ewramPad1_8 = 0;
+EWRAM_DATA struct oamLayer oamLayerBuffer[128];
+EWRAM_DATA s8 oamLayerIndex;
+EWRAM_DATA s8 oamLayerEnd[LAYER_COUNT];
 EWRAM_DATA struct copyOnVBlankEntry copyOnVBlankQueue[1000] = {0};
 
 const void setSyncBGMapFlagsByID(int bg) {
@@ -148,14 +151,23 @@ OBJ_ATTR* sortOAMBuffer(OBJ_ATTR* oamArr, int arrSize) {
 }
 
 // move objects in buffer to OAM.
+// Order layer descending.
 const void flushOAMBuffer() {
-  sortOAMBuffer(oamBuffer, oamBufferConsumed);
-  obj_copy(oam_mem, oamBuffer, oamBufferConsumed);
+  int i, j, k = 0;
+  
+  for (i = LAYER_COUNT - 1; i >= 0; i--) {
+    j = oamLayerEnd[i];
+    while (j != -1) {
+      obj_copy(oam_mem + k, &oamBuffer[oamLayerBuffer[j].oamID], 1);
+      k++;
+      j = oamLayerBuffer[j].prev;
+    }
+  }
 }
 
 // move affine matrices in buffer to OAM affine.
 const void flushAffOAMBuffer() {
-  for (int i = 0; i < oamAffBufferConsumed; i++) {
+  for (int i = 0; i < oamAffIndex; i++) {
     obj_aff_mem[i].pa = oamAffBuffer[i][0];
     obj_aff_mem[i].pb = oamAffBuffer[i][1];
     obj_aff_mem[i].pc = oamAffBuffer[i][2];
@@ -163,49 +175,63 @@ const void flushAffOAMBuffer() {
   }
 }
 
-const void clearOAMBuffer() {
-  for (int i = 0; i < 128; i++) {
+const void clearOAMBuffers() {
+  int i;
+  
+  for (i = 0; i < 128; i++) {
     oamBuffer[i].attr0 |= ATTR0_HIDE;
+    oamLayerBuffer[i].oamID = -1;
+    oamLayerBuffer[i].prev = -1;
   }
-  oamBufferConsumed = 0;
+  for (i = 0; i < LAYER_COUNT; i++)
+    oamLayerEnd[i] = -1;
+  oamLayerIndex = 0;
+  oamIndex = 0;
+  oamAffIndex = 0;
 }
 
-// If buffer is full, returns false.
-// Otherwise, adds object to OAMBuffer,
-// to be displayed next frame and returns true.
-int addToOAMBuffer(OBJ_ATTR* object, int priority) {
-  if (oamBufferConsumed >= 128)
+// If buffers are full or layer is incorrect, returns false.
+// Otherwise, inserts object in OAMBuffer,
+// to be displayed next frame, Updates layerbuffer
+// and returns true.
+int addToOAMBuffer(OBJ_ATTR* object, u32 layer) {
+  if (oamIndex >= 128 || oamLayerIndex >= 128 || layer >= LAYER_COUNT)
     return false;
   
-  oamBuffer[oamBufferConsumed] = *object;
-  oamBuffer[oamBufferConsumed].fill = (s16)priority;
-  oamBufferConsumed++;
+  if (oamLayerEnd[layer] != -1)
+    oamLayerBuffer[oamLayerIndex].prev = oamLayerEnd[layer];
   
+  oamLayerBuffer[oamLayerIndex].oamID = oamIndex;
+  oamLayerEnd[layer] = oamLayerIndex;
+  oamBuffer[oamIndex] = *object;
+  
+  oamLayerIndex++;
+  oamIndex++;
   return true;
 }
 
 // If either OAM or affine buffer is full, returns -1.
 // Otherwise, add object to OAMBuffer and affine matrix
 // to affine OAM buffer and return ID of affine matrix.
-int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, int priority) {
-  if (oamAffBufferConsumed >= 32)
+int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, u32 layer) {
+  if (oamAffIndex >= 32)
     return -1;
   
   // Set affine matrix params.
-  oamAffBuffer[oamAffBufferConsumed][0] = affMatr->pa;
-  oamAffBuffer[oamAffBufferConsumed][1] = affMatr->pb;
-  oamAffBuffer[oamAffBufferConsumed][2] = affMatr->pc;
-  oamAffBuffer[oamAffBufferConsumed][3] = affMatr->pd;
+  oamAffBuffer[oamAffIndex][0] = affMatr->pa;
+  oamAffBuffer[oamAffIndex][1] = affMatr->pb;
+  oamAffBuffer[oamAffIndex][2] = affMatr->pc;
+  oamAffBuffer[oamAffIndex][3] = affMatr->pd;
   
   // Set affine matrix ID.
   object->attr1 &= ~ATTR1_AFF_ID_MASK;
-  object->attr1 |= (oamAffBufferConsumed << ATTR1_AFF_ID_SHIFT);
+  object->attr1 |= (oamAffIndex << ATTR1_AFF_ID_SHIFT);
   
-  if (!addToOAMBuffer(object, priority))
+  if (!addToOAMBuffer(object, layer))
     return -1;
 
-  oamAffBufferConsumed++;
-  return oamAffBufferConsumed - 1;
+  oamAffIndex++;
+  return oamAffIndex - 1;
 }
 
 // Copy data as instructed in entries in queue.
