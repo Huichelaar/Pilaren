@@ -36,7 +36,7 @@ const void setSyncPalFlagsByMask(int pal) {
 // load clrs into palette buffer.
 // palslot: offset at which to start copying to.
 // size: number of colours.
-const void loadColours(COLOR* clrs, int colSlot, int size) {
+const void loadColours(const COLOR* clrs, int colSlot, int size) {
   // CpuFastSet if size is multiple of 8 bytes and large enough.
   if ((size >= 0x20) && ((size & 0x3) == 0))
     CpuFastSet(clrs, &palBuffer[colSlot], size>>1);
@@ -267,7 +267,7 @@ int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode) {
 
 // Map tileMap in src to dest.
 // mask can contain palette and additional tileoffset data.
-const void mapTilemap(SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask) {
+const void mapTilemap(const SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask) {
   int x, y;
   
   dest = dest + yOffs * 32 + xOffs;

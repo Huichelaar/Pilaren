@@ -27,5 +27,6 @@ const void titleInput();
 const void titleUpdate();
 const void selectCuGm(const struct MenuItem* mi);
 const void hoverCuGmItems(const struct MenuItem* mi);
+const void selectGu(const struct MenuItem* mi);
 
 #endif // TITLE

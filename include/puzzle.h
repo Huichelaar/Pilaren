@@ -1,5 +1,6 @@
 #ifndef PUZZLE
 #define PUZZLE
+#include "pillar.h"
 
 #define PUZZLE_LENGTH_MIN 2
 #define PUZZLE_LENGTH_MAX 4
@@ -17,6 +18,7 @@ extern u8 puzSolveStatus;
 extern s16 initPilCamY;
 extern s16 initBGOfsY;
 extern s16 initBGOfsY2;
+extern struct Pillar* selPil;
 
 extern u8* const puzDim[3];
 
@@ -27,9 +29,22 @@ enum {
   PUZZLE_IDLE = 2,
 };
 
+enum {
+  // puzzle display options.
+  PUZDISP_DISABLE = 0x00,
+  PUZDISP_HIGHLIGHT1 = 0x01,
+  PUZDISP_HIGHLIGHT2 = 0x02,
+  PUZDISP_HIGHLIGHT3 = 0x03,
+  //...
+  PUZDISP_MATCH1 = 0x10,
+  PUZDISP_MATCH2 = 0x20
+};
+extern u8 puzDispOptions;
+
 const void puzzleMatchRowOrCol(int id, int col);
 int puzzleIsSolved();
 const void puzzleDrawMatch(int timer);
+const void puzzleDrawHighlight(struct Pillar* pil, int timer);
 const void puzzleGenerate();
 const void puzzleInit();
 const void puzzleTransition1();

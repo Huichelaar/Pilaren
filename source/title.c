@@ -3,10 +3,12 @@
 #include "video.h"
 #include "lcdiobuffer.h"
 #include "efx.h"
+#include "gfx/system.h"
 #include "gfx/pil.h"
 #include "gfx/pilTitle.h"
 #include "pillar.h"
 #include "puzzle.h"
+#include "guide.h"
 #include "menu.h"
 #include "main.h"
 #include "title.h"
@@ -32,6 +34,9 @@ u8* menuID = (u8*)(ADR4);               // Used to keep track of which (sub)menu
 
 const void titleStart() {
   int pilID;
+  
+  // Set default options.
+  puzDispOptions = PUZDISP_HIGHLIGHT2;
   
   // Set video mode to 0.
   lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D;
@@ -65,7 +70,7 @@ const void titleStart() {
   lcdioBuffer.bldalpha = BLDA_BUILD(0, 16);
   
   // Load Title palette. Randomize colours.
-  loadColours((COLOR*)pilPal+1, 1, 2);
+  loadColours((COLOR*)systemPal+1, 1, 2);
   for (int i = 3; i <= 83; i++)      // Title uses 83 different colourIDs.
     setColour(pilColourByID[qran_range(0, 4)], i);
   setSyncPalFlagsByMask(0x3F);
@@ -99,7 +104,7 @@ const void titleStart() {
   
   // Enable sprites.
   lcdioBuffer.dispcnt |= DCNT_OBJ;
-  loadColours((COLOR*)pilPal, 256, 16);
+  loadColours((COLOR*)systemPal, 256, 16);
   setSyncPalFlagsByID(16);
   
   // Setup flavour pillars.
@@ -289,4 +294,13 @@ const void hoverCuGmItems(const struct MenuItem* mi) {
     dimGlyph[0] = '0' + *dim;
     tte_write(dimGlyph);
   }
+}
+
+// Routine run when selecting "Guide" on titlemenu.
+const void selectGu(const struct MenuItem* mi) {
+  menuClear();
+  
+  lcdioBuffer.dispcnt = 0;      // Disable all display.
+  
+  setGameState(GAME_GUIDE, GUIDE_START);
 }

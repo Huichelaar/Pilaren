@@ -4,11 +4,10 @@
 //======================================================================
 //
 //	pil, 256x88@4, 
-//	+ palette 16 entries, not compressed
 //	+ 352 tiles not compressed
-//	Total size: 32 + 11264 = 11296
+//	Total size: 11264 = 11264
 //
-//	Time-stamp: 2024-02-08, 15:05:34
+//	Time-stamp: 2024-03-18, 18:27:24
 //	Exported by Cearn's GBA Image Transmogrifier, v0.8.3
 //	( http://www.coranac.com/projects/#grit )
 //
@@ -807,12 +806,6 @@ const unsigned short pilTiles[5632] __attribute__((aligned(4)))=
 	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
-};
-
-const unsigned short pilPal[16] __attribute__((aligned(4)))=
-{
-	0x1DE0,0x318C,0x0000,0x7FFF,0x7E8D,0x317B,0x1FDF,0x0000,
-	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x7C1F,
 };
 
 //}}BLOCK(pil)

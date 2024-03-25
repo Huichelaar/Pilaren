@@ -3,6 +3,7 @@
 #include "efx.h"
 #include "video.h"
 #include "lcdiobuffer.h"
+#include "gfx/system.h"
 #include "gfx/pil.h"
 #include "main.h"
 #include "pillar.h"
@@ -264,51 +265,6 @@ int pilCalcCoords(struct Pillar* pil, s16* x, s16* y) {
       *y <= -64 || *y >= SCREEN_HEIGHT)
     return false;       // Offscreen.
   return true;
-}
-
-// Highlight given pillar using alternate palette.
-const void pilDrawHighlight(struct Pillar* pil, int timer) {
-  int palID, bld;
-  const COLOR clrs2[7] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
-  COLOR bldClrs[7];
-  s16 x, y;
-  OBJ_ATTR obj = {0, 0, 0, 0};
-  
-  // Don't draw hidden pillars.
-  if (pil->animID == PIL_ANIM_HIDDEN)
-    return;
-  
-  if (!pilCalcCoords(pil, &x, &y))
-    return;       // Offscreen; Don't draw.
-  
-  // Build object based on spriteData member.
-  obj_copy(&obj, &pil->spriteData->obj, 1);
-  
-  // Add coordinates.
-  obj.attr0 = (obj.attr0 & 0xFF00) | ((obj.attr0 + y) & ATTR0_Y_MASK);
-  obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
-  
-  // Set tile.
-  obj.attr2 |= (((pil->id - 1) << 5) & ATTR2_ID_MASK);
-  
-  // Mask with pillar specific attributes (no coordinates!)
-  obj.attr0 |= pil->objMask.attr0;
-  obj.attr1 |= pil->objMask.attr1;
-  obj.attr2 |= pil->objMask.attr2;
-  
-  // Use next palette index.
-  obj.attr2 += 0x1000;
-  palID = ((obj.attr2 & 0xF000) >> 12) + 16;
-  
-  // Blend palette.
-  bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
-  clr_blend(pilPal, clrs2, bldClrs, 7, bld);
-  loadColours(bldClrs, palID << 4, 7);
-  setSyncPalFlagsByID(palID);
-  
-  // Draw to screen.
-  // Pillars are 64 pixels tall, hence why we add 63.
-  addToOAMBuffer(&obj, VERT_OBJ_LAYER(y + 63));
 }
 
 // Draw all pillars in pillar array.

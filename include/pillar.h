@@ -83,7 +83,6 @@ const void pilSetAnim(struct Pillar* pil, u8 animID);
 const void pilAnimRand(int freq);
 const void pilRunAnims();
 int pilCalcCoords(struct Pillar* pil, s16* x, s16* y);
-const void pilDrawHighlight(struct Pillar* pil, int timer);
 const void pilDrawAll();
 
 #endif // PILLAR

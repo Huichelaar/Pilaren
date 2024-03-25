@@ -6,6 +6,7 @@
 #include "lang.h"
 #include "title.h"
 #include "puzzle.h"
+#include "guide.h"
 #include "main.h"
 
 #define CURSORLOOP_INIT_DELAY 30  // After CURSORLOOP_INIT_DELAY frames,
@@ -119,6 +120,9 @@ const void update() {
       break;
     case GAME_PUZZLE:
       puzzleUpdate();
+      break;
+    case GAME_GUIDE:
+      guideUpdate();
       break;
   }
 }

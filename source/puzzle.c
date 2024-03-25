@@ -5,6 +5,7 @@
 #include "menu.h"
 #include "main.h"
 #include "pillar.h"
+#include "gfx/system.h"
 #include "gfx/pil.h"
 #include "puzzle.h"
 #include "video.h"
@@ -19,6 +20,7 @@ EWRAM_DATA s16 initPilCamY;
 EWRAM_DATA s16 initBGOfsY;
 EWRAM_DATA s16 initBGOfsY2;
 EWRAM_DATA struct Pillar* selPil;
+EWRAM_DATA u8 puzDispOptions;
 
 u8* const puzDim[3] = {&puzLength, &puzBreadth, &puzHeight};
 
@@ -122,21 +124,28 @@ int puzzleIsSolved() {
 // Draws sprites highlighting matching panes in rows and columns.
 const void puzzleDrawMatch(int timer) {
   int bld, i, j;
-  const COLOR clrs[4] = {CLR_GREEN, CLR_GREEN, CLR_GREEN, CLR_GREEN};
+  const COLOR clrs[4] = {0x3E0, 0x3E0, 0x3E0, 0x3E0};   // Green. As green as it gets.
   COLOR bldClrs[4];
   s16 x, y, xPane, yPane;
   OBJ_ATTR obj = {0x8000, 0, 0, 0};
   
+  if ((puzDispOptions & 0xF0) == PUZDISP_DISABLE)
+    return;
+  
   // Blend palettes.
-  bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
-  clr_blend(&pilPal[3], clrs, bldClrs, 4, bld);
-  loadColours(bldClrs, 508, 4);
-  setSyncPalFlagsByID(31);
+  if ((puzDispOptions & 0xF0) == PUZDISP_MATCH1) {
+    bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
+    clr_blend(&systemPal[3], clrs, bldClrs, 4, bld);
+    loadColours(bldClrs, 291, 4);
+    setSyncPalFlagsByID(18);
+  }
   
   // Draw pane sprites.
   for (i = 0; i < puzLength * puzBreadth; i++) {
     if (!pilCalcCoords(&pilArray[i], &x, &y))
       continue;     // Offscreen; Don't draw.
+    if (pilArray[i].animID != PIL_ANIM_IDLE)
+      continue;     // Don't draw on moving or hidden pillars.
     for (j = 0; j < puzHeight; j++) {
       if (pilArray[i].colour[j] & 0x10) {
         // Match, draw highlight pane.
@@ -157,8 +166,10 @@ const void puzzleDrawMatch(int timer) {
         obj.attr1 &= 0xFE00;
         obj.attr1 |= (xPane & ATTR1_X_MASK);
         
-        // Grab correct colour.
-        obj.attr2 = 0xF382 + ((pilArray[i].colour[j] & 3) << 1);
+        if ((puzDispOptions & 0xF0) == PUZDISP_MATCH1)
+          obj.attr2 = 0x2382 + ((pilArray[i].colour[j] & 3) << 1);    // Grab correct colour.
+        else //if ((puzDispOptions & 0xF0) == PUZDISP_MATCH2)
+          obj.attr2 = 0x038A;
         
         // Draw to screen.
         // Pillars are 64 pixels tall, hence why we add 63.
@@ -183,8 +194,10 @@ const void puzzleDrawMatch(int timer) {
         obj.attr1 &= 0xFE00;
         obj.attr1 |= (xPane & ATTR1_X_MASK);
         
-        // Grab correct colour.
-        obj.attr2 = 0xF382 + ((pilArray[i].colour[j + PILLAR_HEIGHT_MAX] & 3) << 1);
+        if ((puzDispOptions & 0xF0) == PUZDISP_MATCH1)
+          obj.attr2 = 0x2382 + ((pilArray[i].colour[j + PILLAR_HEIGHT_MAX] & 3) << 1);  // Grab correct colour.
+        else //if ((puzDispOptions & 0xF0) == PUZDISP_MATCH2)
+          obj.attr2 = 0x038A;
         
         // Draw to screen.
         // Pillars are 64 pixels tall, hence why we add 63.
@@ -192,6 +205,74 @@ const void puzzleDrawMatch(int timer) {
       }
     }
   }
+}
+
+// Highlight given pillar using alternate palette.
+const void puzzleDrawHighlight(struct Pillar* pil, int timer) {
+  int palID, bld, layer;
+  const COLOR clrs1[1] = {0x7C1F};        // Magenta. Max red and blue, min green.
+  const COLOR clrs2[7] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
+  COLOR bldClrs[7];
+  s16 x, y;
+  OBJ_ATTR obj = {0, 0, 0, 0};
+  
+  if ((puzDispOptions & 0xF) == PUZDISP_DISABLE)
+    return;
+  
+  // Only draw on idle pillars.
+  if (pil->animID != PIL_ANIM_IDLE)
+    return;
+  
+  if (!pilCalcCoords(pil, &x, &y))
+    return;       // Offscreen; Don't draw.
+  
+  layer = VERT_OBJ_LAYER(y + 63);   // Pillars are 64 pixels tall, hence why we add 63.
+  
+  // Build object based on spriteData member.
+  obj_copy(&obj, &pil->spriteData->obj, 1);
+  
+  // Blend palette.
+  bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
+  if ((puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT1) {             // Blend entire pillar periodically.
+    
+    // Set attributes.
+    obj.attr0 = (obj.attr0 & 0xFF00) | ((obj.attr0 + y) & ATTR0_Y_MASK);
+    obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
+    obj.attr2 = 0x1000 | (((pil->id - 1) << 5) & ATTR2_ID_MASK);
+    
+    // Mask with pillar specific attributes (no coordinates!)
+    obj.attr0 |= pil->objMask.attr0;
+    obj.attr1 |= pil->objMask.attr1;
+    obj.attr2 |= pil->objMask.attr2;
+    
+    // Blend entire pillar.
+    clr_blend(systemPal, clrs2, bldClrs, 7, bld);
+    loadColours(bldClrs, 17 << 4, 7);
+    
+  } else if ((puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT2 ||      // Blend top of pillar periodically.
+             (puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT3) {      // Set top of pillar to highlight colour.
+    
+    // Calculate coordinates.
+    y += 48 + (obj.attr0 & ATTR0_Y_MASK) - (pil->height << 3);
+    x += 8;
+    
+    // Set attributes.
+    obj.attr0 = y & ATTR0_Y_MASK;
+    obj.attr1 = ATTR1_SIZE_16 | (x & ATTR1_X_MASK);
+    obj.attr2 = 0x138C;
+    
+    // Blend top of pillar.
+    clr_blend(systemPal+1, clrs1, bldClrs, 1, bld);
+    setColour(bldClrs[0], (17 << 4) + 1);
+    
+  }
+  
+  // Draw to screen.
+  addToOAMBuffer(&obj, layer);
+  
+  // Update blended palette, unless it's PUZDISP_HIGHLIGHT3.
+  if ((puzDispOptions & 0xF) != PUZDISP_HIGHLIGHT3)
+    setSyncPalFlagsByID(17);
 }
 
 // Creates a puzzle of given dimensions.
@@ -425,6 +506,10 @@ const void puzzleTransition1() {
 
 const void puzzleTransition2() {
   if (gStateClock == 0) {
+    loadColours((COLOR*)systemPal, 272, systemPalLen>>1);
+    if ((puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT3)
+      setColour(0x7C1F, 273);         // Magenta. Max red and blue, min green.
+    setSyncPalFlagsByID(17);
     puzzleGenerate();
     pilCamX = -104;
     pilCamY = 160;
@@ -482,8 +567,8 @@ const void puzzleIdle() {
   
   pilRunAnims();
   pilDrawAll();
-  pilDrawHighlight(selPil, gStateClock);
   puzzleDrawMatch(gStateClock);
+  puzzleDrawHighlight(selPil, gStateClock);
   
   gStateClock++;
 }

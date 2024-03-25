@@ -4,11 +4,10 @@
 //======================================================================
 //
 //	pil, 256x88@4, 
-//	+ palette 16 entries, not compressed
 //	+ 352 tiles not compressed
-//	Total size: 32 + 11264 = 11296
+//	Total size: 11264 = 11264
 //
-//	Time-stamp: 2024-02-08, 15:05:34
+//	Time-stamp: 2024-03-18, 18:27:24
 //	Exported by Cearn's GBA Image Transmogrifier, v0.8.3
 //	( http://www.coranac.com/projects/#grit )
 //
@@ -19,9 +18,6 @@
 
 #define pilTilesLen 11264
 extern const unsigned short pilTiles[5632];
-
-#define pilPalLen 32
-extern const unsigned short pilPal[16];
 
 #endif // GRIT_PIL_H
 

@@ -40,7 +40,7 @@ const void setSyncBGMapFlagsByID (int bg);
 const void setSyncBGMapFlagsByMask (int bg);
 const void setSyncPalFlagsByID(int pal);
 const void setSyncPalFlagsByMask(int pal);
-const void loadColours(COLOR* clrs, int colSlot, int size);
+const void loadColours(const COLOR* clrs, int colSlot, int size);
 const void setColour(COLOR col, int colSlot);
 const void flushBGBuffer();
 const void flushPalBuffer();
@@ -54,6 +54,6 @@ int addToOAMBuffer(OBJ_ATTR* object, u32 layer);
 int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, u32 layer);
 const void flushCopyOnVBlankQueue();
 int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode);
-const void mapTilemap(SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);
+const void mapTilemap(const SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);
 
 #endif // VIDEO

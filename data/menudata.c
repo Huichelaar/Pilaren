@@ -3,12 +3,16 @@
 #include "lang.h"
 #include "title.h"
 #include "puzzle.h"
+#include "guide.h"
 #include "gfx/mainMenu.h"
 #include "menu.h"
 
 const struct MenuItem titleMenuItemStGm;
 const struct MenuItem titleMenuItemCuGm;
-const struct MenuItem* const titleMenuItems[3] = {&titleMenuItemStGm, &titleMenuItemCuGm, NULL};
+const struct MenuItem titleMenuItemGu;
+const struct MenuItem* const titleMenuItems[4] = {&titleMenuItemStGm,
+                                                  &titleMenuItemCuGm,
+                                                  &titleMenuItemGu, NULL};
 
 const struct Menu titleMenu = {
   1,
@@ -19,7 +23,7 @@ const struct Menu titleMenu = {
   12,
   6,
   7,
-  1,
+  0,
   {0, 0, 0},
   &drawMenu,
   NULL,
@@ -62,7 +66,26 @@ const struct MenuItem titleMenuItemCuGm = {
   NULL,
   NULL,
   &titleMenuItemStGm,
+  &titleMenuItemGu,
   NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem titleMenuItemGu = {
+  &titleMenu,
+  {"   Uitleg\n", "   Guide\n"},
+  0,
+  36,
+  2,
+  {0, 0, 0},
+  NULL,
+  &selectGu,
+  NULL,
+  NULL,
+  &titleMenuItemCuGm,
+  &titleMenuItemStGm,
   NULL,
   NULL,
   NULL,
@@ -85,7 +108,7 @@ const struct Menu customGameMenu = {
   12,
   6,
   7,
-  1,
+  0,
   {0, 0, 0},
   &drawMenu,
   &menuExit,
