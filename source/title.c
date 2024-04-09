@@ -43,9 +43,9 @@ const void titleStart() {
   
   // Set BG-control.
   lcdioBuffer.bg0cnt = BG_BUILD(0, 28, 0, 0, 0, 0, 0);
-  lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 2, 0, 1, 0, 0);
-  lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 2, 0, 2, 0, 0);
-  lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 0, 3, 0, 0);
+  lcdioBuffer.bg1cnt = BG_BUILD(2, 29, 2, 0, 1, 0, 0);
+  lcdioBuffer.bg2cnt = BG_BUILD(1, 30, 2, 0, 2, 0, 0);
+  lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 8, 3, 0, 0);
   
   // Clear BGMaps.
   CpuFastFill(0, &bgmap[0], 0x800);
@@ -75,18 +75,11 @@ const void titleStart() {
     setColour(pilColourByID[qran_range(0, 4)], i);
   setSyncPalFlagsByMask(0x3F);
   
-  // Load Title tiles, tilemap and set BG3CNT.
+  // Load Title tiles, tilemap.
   CpuFastSet((void*)pilTitleTiles, (void*)tile8_mem, pilTitleTilesLen>>2);
   CpuFastSet((void*)pilTitleMap, (void*)bgmap[3], pilTitleMapLen>>2);
   setSyncBGMapFlagsByID(3);
   lcdioBuffer.dispcnt |= DCNT_BG3;
-  lcdioBuffer.bg3cnt |= BG_8BPP | BG_PRIO(3);
-  lcdioBuffer.bg3vofs = -6;
-  
-  // Setup main menu BGCNT.
-  lcdioBuffer.bg2cnt &= ~BG_CBB_MASK;
-  lcdioBuffer.bg2cnt |= BG_CBB(1);      // Avoid competing with title for tiles.
-  lcdioBuffer.bg2cnt |= BG_PRIO(2);
   
   // Setup window for main menu.
   lcdioBuffer.win0h = WIN_BUILD(168, 80);
@@ -96,9 +89,6 @@ const void titleStart() {
   lcdioBuffer.dispcnt |= DCNT_WIN0 | DCNT_BG1 | DCNT_BG2;
   
   // Setup main menu.
-  lcdioBuffer.bg1cnt &= ~BG_CBB_MASK;
-  lcdioBuffer.bg1cnt |= BG_CBB(2);
-  lcdioBuffer.bg1cnt |= BG_PRIO(1);
   menuClear();
   addMenu(&titleMenu);
   
@@ -108,7 +98,7 @@ const void titleStart() {
   setSyncPalFlagsByID(16);
   
   // Setup flavour pillars.
-  initPilArray(-104, 80);
+  puzInitPil(0, -104, 80);
   
   // Build pillars.
   const s16 titlePilCoords[TITLE_PILLARCOUNT][2] = {
@@ -143,14 +133,14 @@ const void titleStart() {
     
     // Build pillar and add to pilArray.
     pil = pilConstr(clrs, titlePilCoords[i][0], titlePilCoords[i][1]);
-    pilID = addPilToPilArray(&pil);
+    pilID = puzAddPil(0, &pil);
     if (pilID == -1)
       break;
     
     // Hide pillar and add to hiddenPillars array.
-    pilSetAnim(&pilArray[pilID], PIL_ANIM_HIDDEN);
+    pilSetAnim(&puzzle[0].pil[pilID], PIL_ANIM_HIDDEN);
     hiddenPillars[i] = pilID;
-    pilArray[pilID].height = 0;
+    puzzle[0].pil[pilID].height = 0;
   }
   
   setGameState(gGameState, TITLE_LOAD);
@@ -170,7 +160,7 @@ const void titleLoad() {
       id = qran_range(0, TITLE_PILLARCOUNT - count);
       pilID = hiddenPillars[id];
       
-      pilSetAnim(&pilArray[pilID], PIL_ANIM_IDLE);
+      pilSetAnim(&puzzle[0].pil[pilID], PIL_ANIM_IDLE);
       
       // Remove unhidden pillar, and shift rest of hiddenPillars array.
       for (int i = id; i < (TITLE_PILLARCOUNT - 1) - count; i++)
@@ -207,8 +197,8 @@ const void titleLoad() {
     }
   }
   
-  pilRunAnims();
-  pilDrawAll();
+  puzRunAnims(0);
+  puzDrawAll(0);
   
   gStateClock++;
   
@@ -219,9 +209,9 @@ const void titleLoad() {
 const void titleInput() {
   
   runMenus();
-  pilAnimRand(60);
-  pilRunAnims();
-  pilDrawAll();
+  puzAnimRand(0, 60);
+  puzRunAnims(0);
+  puzDrawAll(0);
   
   gStateClock++;
 };
@@ -244,29 +234,29 @@ const void titleUpdate() {
 const void selectCuGm(const struct MenuItem* mi) {
   addMenu(&customGameMenu);
   
-  puzStageMax = 1;
-  puzStageCur = 1;
+  puzzle[0].stageMax = 1;
+  puzzle[0].stageCur = 1;
   
   tte_set_pos(64, 0);
   tte_write("2");
-  puzLength = 2;
+  puzzle[0].length = 2;
   tte_set_pos(64, 16);
   tte_write("2");
-  puzBreadth = 2;
+  puzzle[0].breadth = 2;
   tte_set_pos(64, 32);
   tte_write("1");
-  puzHeight = 1;
+  puzzle[0].height = 1;
 }
 
 // Routine run when hovering over puzzle dimensions
 // in custom game submenu. Change dimension value
 // based on input.
 const void hoverCuGmItems(const struct MenuItem* mi) {
-  const int lim[6] = {PUZZLE_LENGTH_MIN, PUZZLE_LENGTH_MAX,
-                      PUZZLE_BREADTH_MIN, PUZZLE_BREADTH_MAX,
-                      PUZZLE_HEIGHT_MIN, PUZZLE_HEIGHT_MAX};
+  const int lim[6] = {PUZ_LENGTH_MIN, PUZ_LENGTH_MAX,
+                      PUZ_BREADTH_MIN, PUZ_BREADTH_MAX,
+                      PUZ_HEIGHT_MIN, PUZ_HEIGHT_MAX};
   const int y = mi->id << 4;
-  u8* dim = puzDim[mi->id];
+  u8* dim = (&puzzle[0].length) + mi->id;
   int change = false;
   char dimGlyph[2] = {'0', '\0'};
   

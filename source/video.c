@@ -253,7 +253,7 @@ const void flushCopyOnVBlankQueue() {
 // Add instruction, to copy size data from src to dest,
 // to copyOnVBlankQueue. Returns true if succesful,
 // false if queue is full.
-int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode) {
+int addToCopyOnVBlankQueue(const void* src, void* dest, int size, int mode) {
   if (copyOnVBlankQueueConsumed >= 1000)
     return false;
   

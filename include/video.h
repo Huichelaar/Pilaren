@@ -26,7 +26,7 @@ enum {
 };
 struct copyOnVBlankEntry {      // Used to delay copying data until after next VDraw.
   int mode;                     // mode is BUFFER_FILL or BUFFER_COPY.
-  void* src;
+  const void* src;
   void* dest;
   int size;
 };
@@ -53,7 +53,7 @@ const void clearOAMBuffers();
 int addToOAMBuffer(OBJ_ATTR* object, u32 layer);
 int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, u32 layer);
 const void flushCopyOnVBlankQueue();
-int addToCopyOnVBlankQueue(void* src, void* dest, int size, int mode);
+int addToCopyOnVBlankQueue(const void* src, void* dest, int size, int mode);
 const void mapTilemap(const SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);
 
 #endif // VIDEO

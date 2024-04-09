@@ -1,16 +1,10 @@
 #ifndef PILLAR
 #define PILLAR
 
-#define PIL_ARRAY_MAX 20
-#define PILLAR_HEIGHT_MAX 3
+#define PIL_HEIGHT_MAX 3
 #define PIL_TILE_WIDTH 17
 #define PIL_TILE_HEIGHT 17
 #define PIL_TILE(x, y) {x*PIL_TILE_WIDTH, y*PIL_TILE_HEIGHT}
-
-extern u32 pilCounter;
-extern s16 pilCamX;
-extern s16 pilCamY;
-extern const COLOR pilColourByID[4];
 
 struct Pillar {
   int id;
@@ -34,7 +28,6 @@ struct Pillar {
   struct Pillar* rightUp;
   struct Pillar* rightDown;
 };
-extern struct Pillar pilArray[PIL_ARRAY_MAX];
 
 enum {
   // Pillar animation states.
@@ -56,6 +49,7 @@ enum {
   PIL_CLR_RED = 0x317B,
   PIL_CLR_YELLOW = 0x1FDF,
 };
+extern const COLOR pilColourByID[4];
 
 struct PillarSpriteData {
   OBJ_ATTR obj;                                 // Filler used for timer.
@@ -73,16 +67,11 @@ struct PillarTileData {
 };
 
 const void pilGenerateRandColours(u8* clrs);
-const void initPilArray();
 struct Pillar pilConstr(u8* colours, s16 x, s16 y);
-int addPilToPilArray(struct Pillar* pil);
 //const void removePil(int pilID);
 struct Pillar* genRandPil();
 const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
 const void pilSetAnim(struct Pillar* pil, u8 animID);
-const void pilAnimRand(int freq);
-const void pilRunAnims();
-int pilCalcCoords(struct Pillar* pil, s16* x, s16* y);
-const void pilDrawAll();
+int pilCalcCoords(struct Pillar* pil, s16* x, s16* y, s16 camX, s16 camY);
 
 #endif // PILLAR

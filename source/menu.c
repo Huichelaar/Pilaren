@@ -83,7 +83,9 @@ const void drawMenu(const struct Menu* menu) {
   CpuFastFill(0, (void*)tile_mem[cbb], 0x12C0);
   
   // Init menu item text.
-  tte_init_chr4c(menu->bgIDText, BG_CBB(cbb)|BG_SBB(sbb), menu->palIDText << 12, bytes2word(1,2,0,0), CLR_WHITE, &verdana9_b4_h16Font, (fnDrawg)chr4c_drawg_b4cts_fast);
+  tte_init_chr4c(menu->bgIDText, BG_CBB(cbb)|BG_SBB(sbb), menu->palIDText << 12, bytes2word(3,2,0,0), CLR_WHITE, &verdana9_b4_h16Font, (fnDrawg)chr4c_drawg_b4cts_fast);
+  loadColours((COLOR*)systemPal, menu->palIDText*16, systemPalLen>>1);
+  setSyncPalFlagsByID(menu->palIDText);
   
   // Draw menu item text.
   i = 0;

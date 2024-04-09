@@ -2,25 +2,17 @@
 #define PUZZLE
 #include "pillar.h"
 
-#define PUZZLE_LENGTH_MIN 2
-#define PUZZLE_LENGTH_MAX 4
-#define PUZZLE_BREADTH_MIN 2
-#define PUZZLE_BREADTH_MAX 4
-#define PUZZLE_HEIGHT_MIN 1
-#define PUZZLE_HEIGHT_MAX PILLAR_HEIGHT_MAX
+#define PUZ_LENGTH_MIN 2
+#define PUZ_LENGTH_MAX 4
+#define PUZ_BREADTH_MIN 2
+#define PUZ_BREADTH_MAX 4
+#define PUZ_HEIGHT_MIN 1
+#define PUZ_HEIGHT_MAX PIL_HEIGHT_MAX
+#define PUZ_ARRAY_MAX 20
 
-extern u8 puzStageMax;
-extern u8 puzStageCur;
-extern u8 puzLength;
-extern u8 puzBreadth;
-extern u8 puzHeight;
-extern u8 puzSolveStatus;
 extern s16 initPilCamY;
 extern s16 initBGOfsY;
 extern s16 initBGOfsY2;
-extern struct Pillar* selPil;
-
-extern u8* const puzDim[3];
 
 enum {
   // puzzle states.
@@ -41,15 +33,37 @@ enum {
 };
 extern u8 puzDispOptions;
 
-const void puzzleMatchRowOrCol(int id, int col);
-int puzzleIsSolved();
-const void puzzleDrawMatch(int timer);
-const void puzzleDrawHighlight(struct Pillar* pil, int timer);
-const void puzzleGenerate();
-const void puzzleInit();
-const void puzzleTransition1();
-const void puzzleTransition2();
-const void puzzleIdle();
-const void puzzleUpdate();
+struct Puzzle {
+  u8 stageMax;
+  u8 stageCur;
+  u8 length;
+  u8 breadth;
+  u8 height;
+  u8 solveStatus;
+  s16 camX;
+  s16 camY;
+  
+  u16 pilCounter;
+  struct Pillar* selPil;
+  struct Pillar pil[PUZ_ARRAY_MAX];
+};
+extern struct Puzzle puzzle[2];       // puzzle[0] uses actual logic, puzzle[1] is for display-only.
+
+const void puzMatchRowOrCol(int id, int col);
+int puzIsSolved();
+const void puzDrawAll(int puzID);
+const void puzDrawMatch(int puzID, int timer);
+const void puzDrawHighlight(int puzID, struct Pillar* pil, int timer);
+int puzAddPil(int puzID, struct Pillar* pil);
+const void puzGenerate();
+const void puzInit();
+const void puzInitPil(int puzID, int x, int y);
+const void puzAnimRand(int puzID, int freq);
+const void puzReloadTiles(int puzID);
+const void puzRunAnims(int puzID);
+const void puzTransition1();
+const void puzTransition2();
+const void puzIdle();
+const void puzUpdate();
 
 #endif // PUZZLE

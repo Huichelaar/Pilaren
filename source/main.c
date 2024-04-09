@@ -16,6 +16,7 @@ EWRAM_DATA u32 keyHeld[10];
 EWRAM_DATA u32 gClock;
 EWRAM_DATA u32 gStateClock;
 EWRAM_DATA u32 gGameState;
+EWRAM_DATA u32 gPrevGameState;
 EWRAM_DATA u32 gGenericState;
 
 int main() {
@@ -56,6 +57,7 @@ const void reset(int forceReset) {
     // Initialize game state, generic state & clocks.
     gClock = 0;
     gGameState = GAME_START;
+    gPrevGameState = GAME_START;
     gGenericState = 0;
     setGameState(GAME_RESET, 0);
 
@@ -103,6 +105,9 @@ const int setGameState(u32 gameState, u32 genericState) {
   if (gameState == gGameState && genericState == gGenericState)
     return false;
   
+  if (gameState != gGameState)
+    gPrevGameState = gGameState;
+  
   gGameState = gameState;
   gGenericState = genericState;
   gStateClock = 0;
@@ -119,7 +124,7 @@ const void update() {
       titleUpdate();
       break;
     case GAME_PUZZLE:
-      puzzleUpdate();
+      puzUpdate();
       break;
     case GAME_GUIDE:
       guideUpdate();

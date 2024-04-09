@@ -185,7 +185,7 @@ const struct MenuItem customGameMenuStart = {
   3,
   {0, 0, 0},
   NULL,
-  &puzzleInit,
+  &puzInit,
   NULL,
   NULL,
   &customGameMenuItemH,

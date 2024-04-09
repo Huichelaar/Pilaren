@@ -15,6 +15,7 @@ enum {
   GAME_GUIDE = 4,
 };
 extern u32 gGameState;
+extern u32 gPrevGameState;
 extern u32 gGenericState;
 
 const void VBlankHandler();

@@ -8,10 +8,6 @@
 #include "main.h"
 #include "pillar.h"
 
-EWRAM_DATA u32 pilCounter;
-EWRAM_DATA s16 pilCamX;
-EWRAM_DATA s16 pilCamY;
-EWRAM_DATA struct Pillar pilArray[PIL_ARRAY_MAX];
 const COLOR pilColourByID[4] = {PIL_CLR_WHITE, PIL_CLR_BLUE, PIL_CLR_RED, PIL_CLR_YELLOW};
 
 // Assumes colours is a six element array.
@@ -22,15 +18,6 @@ const void pilGenerateRandColours(u8* clrs) {
       clrs[i] = 3 & clrMask;
       clrMask >>= 2;
     }
-}
-
-const void initPilArray(int x, int y) {
-  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
-    pilArray[i].id = 0;
-  }
-  pilCounter = 0;
-  pilCamX = x;
-  pilCamY = y;
 }
 
 struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
@@ -61,44 +48,6 @@ struct Pillar pilConstr(u8* colours, s16 x, s16 y) {
   pil.rightDown = NULL;
   
   return pil;
-}
-
-// Add Pillar to array. Return pilID in array if success.
-// Return -1 if pillar could not be added to array.
-int addPilToPilArray(struct Pillar* pil) {
-  if (pilCounter >= PIL_ARRAY_MAX)
-    return false;
-  
-  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
-    if (pilArray[i].id != 0)
-      continue;
-    
-    // Copy pillar to array entry.
-    pilArray[i].id = i+1;
-    
-    for (int j = 0; j < 6; j++) { pilArray[i].colour[j] = pil->colour[j]; }
-    pilArray[i].turned = pil->turned;
-    pilArray[i].animID = pil->animID;
-    pilArray[i].animTimer = pil->animTimer;
-    pilArray[i].height = pil->height;
-    pilArray[i].updateTiles = pil->updateTiles;
-    
-    pilArray[i].x = pil->x;
-    pilArray[i].y = pil->y;
-    pilArray[i].spriteData = pil->spriteData;
-    pilArray[i].objMask = pil->objMask;
-    
-    pilArray[i].left = pil->left;
-    pilArray[i].right = pil->right;
-    pilArray[i].up = pil->up;
-    pilArray[i].down = pil->down;
-    
-    pilCounter++;
-    
-    return i;
-  }
-  
-  return -1;              // return -1 if no empty slot in array was found.
 }
 
 // Sets pillar anim to given anim.
@@ -149,115 +98,14 @@ const void pilLoadTiles(struct Pillar* pil, int offsVRAM) {
   }
 }
 
-// Randomly pick a pillar and animate it.
-const void pilAnimRand(int freq) {
-  
-  // Only animate every freq frames.
-  if (gClock % freq)
-    return;
-  
-  const int id = qran_range(0, PIL_ARRAY_MAX);
-  int animID = qran_range(PIL_ANIM_RAISE, PIL_ANIM_TURN+1);
-  
-  // Don't animate pillars that are already animating.
-  if (pilArray[id].animID != PIL_ANIM_IDLE)
-    return;
-  
-  if (animID == PIL_ANIM_RAISE && pilArray[id].height == PILLAR_HEIGHT_MAX)
-    animID = PIL_ANIM_LOWER;
-  else if (animID == PIL_ANIM_LOWER && pilArray[id].height == 0)
-    animID = PIL_ANIM_RAISE;
-  
-  pilSetAnim(&pilArray[id], animID);
-}
-
-// Continues animations of all pillars in pillar array.
-// If TURN or RAISE animations finish, set to IDLE.
-// FIXME, do we need &pilArray[i] when calling pilSetAnim? Can't we just give pil variable?
-const void pilRunAnims() {
-  struct Pillar* pil;
-  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
-    if (!pilArray[i].id)
-      continue;
-    
-    pil = &pilArray[i];
-    
-    switch (pil->animID) {
-        
-      case PIL_ANIM_RAISE:
-        if (pil->animTimer >= pil->spriteData->obj.fill) {
-          if (pil->spriteData->nextFrame != NULL) {
-            // Move to next animation frame.
-            pil->spriteData = pil->spriteData->nextFrame;
-            pil->animTimer = 0;
-            pil->updateTiles = true;
-          } else {
-            // If that was the last frame, return to idle.
-            // Also increment height.
-            pil->height += 1;
-            pilSetAnim(&pilArray[i], PIL_ANIM_IDLE);
-          }
-        } else {
-          pil->animTimer++;
-        }
-        break;
-      
-      case PIL_ANIM_LOWER:
-        if (pil->animTimer >= pil->spriteData->obj.fill) {
-          if (pil->spriteData->nextFrame != NULL) {
-            // Move to next animation frame.
-            pil->spriteData = pil->spriteData->nextFrame;
-            pil->animTimer = 0;
-            pil->updateTiles = true;
-          } else {
-            // If that was the last frame, return to idle.
-            // Also decrement height.
-            pil->height -= 1;
-            pilSetAnim(&pilArray[i], PIL_ANIM_IDLE);
-          }
-        } else {
-          pil->animTimer++;
-        }
-        break;
-      
-      case PIL_ANIM_TURN:
-        if (pil->animTimer >= pil->spriteData->obj.fill) {
-          if (pil->spriteData->nextFrame != NULL) {
-            // Move to next animation frame.
-            pil->spriteData = pil->spriteData->nextFrame;
-            pil->animTimer = 0;
-            pil->updateTiles = true;
-          } else {
-            // If that was the last frame, return to idle.
-            // Also flip turn parameter.
-            pil->turned = !pil->turned;
-            pilSetAnim(&pilArray[i], PIL_ANIM_IDLE);
-          }
-        } else {
-          pil->animTimer++;
-        }
-      case PIL_ANIM_HIDDEN:
-      case PIL_ANIM_IDLE:
-      default:
-        break;
-    }
-    
-    // Load new tiles.
-    if (pil->updateTiles) {
-      pilLoadTiles(pil, (int)(MEM_VRAM_OBJ + (i << 10)));
-      pil->updateTiles = false;
-    }
-  }
-}
-
 // Calculates coordinates where pillar would be drawn,
 // based on pilCamY and pilCamX. Returns false if pillar
 // would be drawn offscreen, true otherwise.
 // layer, x and y args aren't used, but are used to return
 // layer, x and y coordinates and of where pillar would be drawn.
-int pilCalcCoords(struct Pillar* pil, s16* x, s16* y) {
-  *x = (pil->x - pil->y) - pilCamX;
-  *y = (pil->x + pil->y) - pilCamY;
+int pilCalcCoords(struct Pillar* pil, s16* x, s16* y, s16 camX, s16 camY) {
+  *x = (pil->x - pil->y) - camX;
+  *y = (pil->x + pil->y) - camY;
   
   // Pillars are four tiles (32 pixels) wide
   // and eight tiles (64 pixels) tall.
@@ -265,44 +113,4 @@ int pilCalcCoords(struct Pillar* pil, s16* x, s16* y) {
       *y <= -64 || *y >= SCREEN_HEIGHT)
     return false;       // Offscreen.
   return true;
-}
-
-// Draw all pillars in pillar array.
-const void pilDrawAll() {
-  struct Pillar* pil;
-  s16 x, y;
-  OBJ_ATTR obj = {0, 0, 0, 0};
-  
-  for (int i = 0; i < PIL_ARRAY_MAX; i++) {
-    if (!pilArray[i].id)
-      continue;
-    
-    pil = &pilArray[i];
-    
-    // Don't draw hidden pillars.
-    if (pil->animID == PIL_ANIM_HIDDEN)
-      continue;
-    
-    if (!pilCalcCoords(pil, &x, &y))
-      continue;     // Offscreen; Don't draw.
-    
-    // Build object based on spriteData member.
-    obj_copy(&obj, &pil->spriteData->obj, 1);
-    
-    // Add coordinates.
-    obj.attr0 = (obj.attr0 & 0xFF00) | ((obj.attr0 + y) & ATTR0_Y_MASK);
-    obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
-    
-    // Set tile.
-    obj.attr2 |= ((i << 5) & ATTR2_ID_MASK);
-    
-    // Mask with pillar specific attributes (no coordinates!)
-    obj.attr0 |= pil->objMask.attr0;
-    obj.attr1 |= pil->objMask.attr1;
-    obj.attr2 |= pil->objMask.attr2;
-    
-    // Draw to screen.
-    // Pillars are 64 pixels tall, hence why we add 63.
-    addToOAMBuffer(&obj, VERT_OBJ_LAYER(y + 63));
-  }
 }
