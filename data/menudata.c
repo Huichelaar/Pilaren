@@ -4,15 +4,19 @@
 #include "title.h"
 #include "puzzle.h"
 #include "guide.h"
+#include "options.h"
 #include "gfx/mainMenu.h"
+#include "gfx/exitMenu.h"
 #include "menu.h"
 
 const struct MenuItem titleMenuItemStGm;
 const struct MenuItem titleMenuItemCuGm;
 const struct MenuItem titleMenuItemGu;
-const struct MenuItem* const titleMenuItems[4] = {&titleMenuItemStGm,
+const struct MenuItem titleMenuItemOp;
+const struct MenuItem* const titleMenuItems[5] = {&titleMenuItemStGm,
                                                   &titleMenuItemCuGm,
-                                                  &titleMenuItemGu, NULL};
+                                                  &titleMenuItemGu,
+                                                  &titleMenuItemOp, NULL};
 
 const struct Menu titleMenu = {
   1,
@@ -37,16 +41,16 @@ const struct Menu titleMenu = {
 
 const struct MenuItem titleMenuItemStGm = {
   &titleMenu,
-  {"   Standaard spel\n", "   Standard game\n"},
-  0,
-  4,
+  {"   Standaard spel", "   Standard game"},
+  80,
+  58,
   0,
   {0, 0, 0},
   NULL,
   NULL,
   NULL,
   NULL,
-  NULL,
+  &titleMenuItemGu,
   &titleMenuItemCuGm,
   NULL,
   NULL,
@@ -56,9 +60,9 @@ const struct MenuItem titleMenuItemStGm = {
 
 const struct MenuItem titleMenuItemCuGm = {
   &titleMenu,
-  {"   Aangepast spel\n", "   Custom game\n"},
-  0,
-  20,
+  {"   Aangepast spel", "   Custom game"},
+  80,
+  74,
   1,
   {0, 0, 0},
   NULL,
@@ -66,6 +70,25 @@ const struct MenuItem titleMenuItemCuGm = {
   NULL,
   NULL,
   &titleMenuItemStGm,
+  &titleMenuItemOp,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem titleMenuItemOp = {
+  &titleMenu,
+  {"   Opties", "   Settings"},
+  80,
+  90,
+  2,
+  {0, 0, 0},
+  NULL,
+  &selectOp,
+  NULL,
+  NULL,
+  &titleMenuItemCuGm,
   &titleMenuItemGu,
   NULL,
   NULL,
@@ -75,16 +98,16 @@ const struct MenuItem titleMenuItemCuGm = {
 
 const struct MenuItem titleMenuItemGu = {
   &titleMenu,
-  {"   Uitleg\n", "   Guide\n"},
-  0,
-  36,
+  {"   Uitleg", "   Guide"},
+  80,
+  106,
   2,
   {0, 0, 0},
   NULL,
   &selectGu,
   NULL,
   NULL,
-  &titleMenuItemCuGm,
+  &titleMenuItemOp,
   &titleMenuItemStGm,
   NULL,
   NULL,
@@ -122,9 +145,9 @@ const struct Menu customGameMenu = {
 
 const struct MenuItem customGameMenuItemL = {
   &customGameMenu,
-  {"   Lengte:\n", "   Length:\n"},
-  69,
-  4,
+  {"   Lengte:", "   Length:"},
+  80,
+  58,
   0,
   {0, 0, 0},
   &hoverCuGmItems,
@@ -141,9 +164,9 @@ const struct MenuItem customGameMenuItemL = {
 
 const struct MenuItem customGameMenuItemB = {
   &customGameMenu,
-  {"   Breedte:\n", "   Breadth:\n"},
-  69,
-  20,
+  {"   Breedte:", "   Breadth:"},
+  80,
+  74,
   1,
   {0, 0, 0},
   &hoverCuGmItems,
@@ -160,9 +183,9 @@ const struct MenuItem customGameMenuItemB = {
 
 const struct MenuItem customGameMenuItemH = {
   &customGameMenu,
-  {"   Hoogte:\n", "   Height:\n"},
-  69,
-  36,
+  {"   Hoogte:", "   Height:"},
+  80,
+  90,
   2,
   {0, 0, 0},
   &hoverCuGmItems,
@@ -179,9 +202,9 @@ const struct MenuItem customGameMenuItemH = {
 
 const struct MenuItem customGameMenuStart = {
   &customGameMenu,
-  {"   Start spel\n", "   Start game\n"},
-  0,
-  52,
+  {"   Start spel", "   Start game"},
+  80,
+  106,
   3,
   {0, 0, 0},
   NULL,
@@ -198,16 +221,183 @@ const struct MenuItem customGameMenuStart = {
 
 const struct MenuItem customGameMenuExit = {
   &customGameMenu,
-  {"   Terug\n", "   Exit\n"},
-  0,
-  68,
+  {"   Terug", "   Exit"},
+  80,
+  122,
   4,
   {0, 0, 0},
   NULL,
-  &menuExit2,
+  &menuExit,
   NULL,
   NULL,
   &customGameMenuStart,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem optionsMenuItemHighlight;
+const struct MenuItem optionsMenuItemMatch;
+const struct MenuItem optionsMenuItemMusic;
+const struct MenuItem optionsMenuItemSfx;
+const struct MenuItem* const optionsMenuItems[5] = {&optionsMenuItemHighlight, &optionsMenuItemMatch, &optionsMenuItemMusic, &optionsMenuItemSfx, NULL};
+
+const struct Menu optionsMenu = {
+  0,
+  0,
+  0,
+  0,
+  30,
+  20,
+  0,
+  7,
+  0,
+  {0, 0, 0},
+  &drawMenu,
+  &exitOp,
+  NULL,
+  0,
+  NULL,
+  NULL,
+  0,
+  (const struct MenuItem** const)&optionsMenuItems,
+};
+
+const struct MenuItem optionsMenuItemHighlight = {
+  &optionsMenu,
+  {"   Weergave geselecteerde pilaar:", "   Selected pillar display:"},
+  0,
+  16,
+  0,
+  {0, 0, 0},
+  &hoverOpItems,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  &optionsMenuItemMatch,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem optionsMenuItemMatch = {
+  &optionsMenu,
+  {"   Weergave gelijke vlakken:", "   Matching pane display:"},
+  0,
+  48,
+  1,
+  {0, 0, 0},
+  &hoverOpItems,
+  NULL,
+  NULL,
+  NULL,
+  &optionsMenuItemHighlight,
+  &optionsMenuItemMusic,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem optionsMenuItemMusic = {
+  &optionsMenu,
+  {"   Niveau muziek:", "   Music:"},
+  0,
+  80,
+  2,
+  {0, 0, 0},
+  &hoverOpItems,
+  NULL,
+  NULL,
+  NULL,
+  &optionsMenuItemMatch,
+  &optionsMenuItemSfx,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem optionsMenuItemSfx = {
+  &optionsMenu,
+  {"   Niveau effecten", "   Sound effects"},
+  0,
+  112,
+  3,
+  {0, 0, 0},
+  &hoverOpItems,
+  NULL,
+  NULL,
+  NULL,
+  &optionsMenuItemMusic,
+  &optionsMenuItemHighlight,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem exitMenuItemNo;
+const struct MenuItem exitMenuItemYes;
+const struct MenuItem* const exitMenuItems[3] = {&exitMenuItemNo,
+                                                 &exitMenuItemYes, NULL};
+
+const struct Menu exitMenu = {
+  0,
+  1,
+  42,
+  58,
+  20,
+  6,
+  6,
+  7,
+  0,
+  {0, 0, 0},
+  &puzDrawExitMenu,
+  &puzCancelExit,
+  (void*)mainMenuTiles,
+  mainMenuTilesLen,
+  (SCR_ENTRY*)exitMenuMap,
+  (COLOR*)mainMenuPal,
+  4,
+  (const struct MenuItem** const)&exitMenuItems,
+};
+
+const struct MenuItem exitMenuItemNo = {
+  &exitMenu,
+  {"   Nee", "   No"},
+  70,
+  82,
+  0,
+  {0, 0, 0},
+  NULL,
+  &puzCancelExit,
+  NULL,
+  &exitMenuItemYes,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem exitMenuItemYes = {
+  &exitMenu,
+  {"   Ja", "   Yes"},
+  134,
+  82,
+  0,
+  {0, 0, 0},
+  NULL,
+  &puzExit,
+  &exitMenuItemNo,
+  NULL,
+  NULL,
   NULL,
   NULL,
   NULL,

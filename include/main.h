@@ -13,6 +13,7 @@ enum {
   GAME_TITLE = 2,
   GAME_PUZZLE = 3,
   GAME_GUIDE = 4,
+  GAME_OPTIONS = 5,
 };
 extern u32 gGameState;
 extern u32 gPrevGameState;

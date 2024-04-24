@@ -7,10 +7,10 @@
 struct Menu {
   u8 bgIDText;                                      // Background layer which displays text.
   u8 bgIDBox;                                       // Background layer which displays the box.
-  u8 x;
-  u8 y;
-  u8 width;
-  u8 height;
+  u8 xBox;                                          // Menubox dimensions.
+  u8 yBox;                                          // ^.
+  u8 wBox;                                          // ^.
+  u8 hBox;                                          // ^.
   u8 palIDBox;
   u8 palIDText;
   u8 palIDCursor;
@@ -31,8 +31,8 @@ struct Menu {
 struct MenuItem {
   const struct Menu* menu;                            // Menu this item is part of.
   char* name[LANG_COUNT];
-  s16 xOffs;
-  s16 yOffs;
+  s16 x;                                              // Text offset.
+  s16 y;                                              // ^.
   u8 id;
   u8 pad[3];
   const void (*onHover)(const struct MenuItem* mi);   // Run this routine every frame.
@@ -50,15 +50,16 @@ extern const struct MenuItem* gMenus[MENU_MAXDEPTH];
 
 extern const struct Menu titleMenu;
 extern const struct Menu customGameMenu;
+extern const struct Menu optionsMenu;
+extern const struct Menu exitMenu;
 
 const void menuClear();
-const void menuExit(const struct Menu* menu);
-const void menuExit2(const struct MenuItem* mi);
+const void menuExit();
 const void drawMenu(const struct Menu* menu);
 int addMenu(const struct Menu* menu);
-const void drawMenuCursor(const struct MenuItem* mi);
-const void drawMenuCursorFlip(const struct MenuItem* mi);
+int isThereAnActiveMenu();
+const void drawMenuCursor(const struct MenuItem* mi, int xOffs, int yOffs);
+const void drawMenuCursorFlip(const struct MenuItem* mi, int xOffs, int yOffs);
 int runMenus();
-
 
 #endif // MENU

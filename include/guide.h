@@ -2,8 +2,10 @@
 #define GUIDE
 #include "lang.h"
 
-#define GUIDE_PAGECOUNT 3
+#define GUIDE_PAGECOUNT 4
 #define GUIDE_PRERENDERTEXT true      // Change to false to draw guidetext at runtime.
+
+extern u8 guidePageID;
 
 enum {
   // guide states.

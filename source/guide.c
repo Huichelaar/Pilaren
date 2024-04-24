@@ -43,7 +43,7 @@ const void guideStart() {
   setGameState(gGameState, GUIDE_IDLE);
   
   // Draw first page's text.
-  guidePageFlip(0);
+  guidePageFlip(guidePageID);
 }
 
 // Run page-specific init routines.
@@ -197,11 +197,17 @@ const void guidePageInit() {
         tte_set_pos(232, 86);
         tte_write("3");
       }
+      break;
+    case 3:
+      CpuFastFill(0, &bgmap[1], 0x400);
+      setSyncBGMapFlagsByMask(0x6);
   }
 }
 
 // Run page-specific idle routines.
 const void guidePageIdle() {
+  OBJ_ATTR obj = {0, 0, 0, 0};
+  
   switch (guidePageID) {
     case 0:
       if (gStateClock % 180 == 0)
@@ -224,6 +230,80 @@ const void guidePageIdle() {
       puzRunAnims(1);
       puzDrawAll(1);
       break;
+    case 3:
+      
+      // A.
+      obj.attr0 = 0x1B;
+      obj.attr1 = 0xE;
+      obj.attr2 = 0x39A;        // A-Button.
+      addToOAMBuffer(&obj, 0);
+      
+      // B.
+      obj.attr0 = 0x27;
+      obj.attr1 = 0xE;
+      obj.attr2 = 0x39B;        // B-Button.
+      addToOAMBuffer(&obj, 0);
+      
+      // D-Pad.
+      obj.attr0 = 0x33;
+      obj.attr1 = 0xE | ((gStateClock & 0x80) << 5) | ((gStateClock & 0x80) << 6);
+      obj.attr2 = 0x39C + ((gStateClock & 0x40) >> 6);        // D-Pad.
+      addToOAMBuffer(&obj, 0);
+      
+      // R + D-Pad.
+      obj.attr0 = 0x3F;
+      obj.attr1 = 0x6;
+      obj.attr2 = 0x399;        // R-button.
+      addToOAMBuffer(&obj, 0);
+      obj.attr0 = 0x42;
+      obj.attr1 = 0x10;
+      obj.attr2 = 0x3A1;        // +.
+      addToOAMBuffer(&obj, 0);
+      obj.attr0 = 0x3F;
+      obj.attr1 = 0x16 | (((gStateClock + 0x40) & 0x80) << 5) | ((gStateClock & 0x80) << 6);
+      obj.attr2 = 0x39E;        // D-Pad.
+      addToOAMBuffer(&obj, 0);
+      
+      // L + A.
+      obj.attr0 = 0x4B;
+      obj.attr1 = 0x6;
+      obj.attr2 = 0x398;        // L-button.
+      addToOAMBuffer(&obj, 0);
+      obj.attr0 = 0x4E;
+      obj.attr1 = 0x10;
+      obj.attr2 = 0x3A1;        // +.
+      addToOAMBuffer(&obj, 0);
+      obj.attr0 = 0x4B;
+      obj.attr1 = 0x16;
+      obj.attr2 = 0x39A;        // A-Button.
+      addToOAMBuffer(&obj, 0);
+      
+      // L + B.
+      obj.attr0 = 0x57;
+      obj.attr1 = 0x6;
+      obj.attr2 = 0x398;        // L-button.
+      addToOAMBuffer(&obj, 0);
+      obj.attr0 = 0x5A;
+      obj.attr1 = 0x10;
+      obj.attr2 = 0x3A1;        // +.
+      addToOAMBuffer(&obj, 0);
+      obj.attr0 = 0x57;
+      obj.attr1 = 0x16;
+      obj.attr2 = 0x39B;        // B-Button.
+      addToOAMBuffer(&obj, 0);
+      
+      // Select.
+      obj.attr0 = 0x64 | ATTR0_WIDE;
+      obj.attr1 = 0x2  | ATTR1_SIZE_32x8;
+      obj.attr2 = 0x394;        // Select-Button.
+      addToOAMBuffer(&obj, 0);
+      
+      // Start.
+      obj.attr0 = 0x70 | ATTR0_WIDE;
+      obj.attr1 = 0x2  | ATTR1_SIZE_32x8;
+      obj.attr2 = 0x390;        // Start-Button.
+      addToOAMBuffer(&obj, 0);
+      
   }
 }
 
@@ -255,7 +335,7 @@ const void guidePageFlip(int id) {
   guidePageInit();
 }
 
-// TODO, listen for input and draw sprites.
+// Listen for input and draw sprites.
 const void guideIdle() {
   int xOffs;
   OBJ_ATTR obj1 = {0, 0, 0, 0};
@@ -319,6 +399,9 @@ const void guideReturn() {
     lcdioBuffer.bg1cnt = BG_BUILD(2, 29, 2, 0, 1, 0, 0);
     lcdioBuffer.bg2cnt = BG_BUILD(1, 30, 2, 0, 2, 0, 0);
     lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 8, 3, 0, 0);
+    lcdioBuffer.bg1hofs = 0;
+    lcdioBuffer.bg1vofs = 0;
+    lcdioBuffer.bg3vofs = -6;
     
     // Setup dispcnt.
     lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D | DCNT_BG1 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ;
@@ -328,14 +411,12 @@ const void guideReturn() {
     setSyncPalFlagsByID(0);
     
     // Re-draw main menu.
-    menuClear();
-    addMenu(&titleMenu);
+    titleMenu.onOpen(&titleMenu);
     
     // Load Title tiles, tilemap.
     CpuFastSet((void*)pilTitleTiles, (void*)tile8_mem, pilTitleTilesLen>>2);
     CpuFastSet((void*)pilTitleMap, (void*)bgmap[3], pilTitleMapLen>>2);
     setSyncBGMapFlagsByID(3);
-    lcdioBuffer.bg3vofs = -6;
     
     // Re-load flavour pillar tiles.
     puzReloadTiles(0);
@@ -346,12 +427,22 @@ const void guideReturn() {
     
     // Set BG-control.
     lcdioBuffer.bg0cnt = BG_BUILD(0, 28, 0, 0, 0, 0, 0);
-    lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 0, 0, 1, 0, 0);
+    lcdioBuffer.bg1cnt = BG_BUILD(2, 29, 0, 0, 0, 0, 0);
     lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 0, 0, 2, 0, 0);
     lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 0, 3, 0, 0);
     
     // Setup dispcnt.
-    lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D  | DCNT_OBJ;
+    lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D | DCNT_BG0 | DCNT_BG1 | DCNT_OBJ;
+    
+    // Clear background tiles & screen entries.
+    CBB_CLEAR(0);
+    CBB_CLEAR(1);
+    CBB_CLEAR(2);
+    CBB_CLEAR(3);
+    CpuFastFill(0, &bgmap[0], 0x800);
+    
+    // Re-load button prompt text.
+    puzLoadButtonPrompts();
     
     // Set BG to 0xDEAD.
     setColour(CLR_DEAD, 0);

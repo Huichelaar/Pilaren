@@ -7,6 +7,7 @@
 #include "title.h"
 #include "puzzle.h"
 #include "guide.h"
+#include "options.h"
 #include "main.h"
 
 #define CURSORLOOP_INIT_DELAY 30  // After CURSORLOOP_INIT_DELAY frames,
@@ -60,6 +61,10 @@ const void reset(int forceReset) {
     gPrevGameState = GAME_START;
     gGenericState = 0;
     setGameState(GAME_RESET, 0);
+    
+    // Set default options.
+    puzDispOptions = PUZDISP_CURSOR2 | PUZDISP_MATCH1 | PUZDISP_MATCHDISABLE;
+    guidePageID = 0;
 
     // Set first colour of palette to white to avoid flashing.
     pal_bg_mem[0] = CLR_WHITE;
@@ -128,6 +133,9 @@ const void update() {
       break;
     case GAME_GUIDE:
       guideUpdate();
+      break;
+    case GAME_OPTIONS:
+      optionsUpdate();
       break;
   }
 }

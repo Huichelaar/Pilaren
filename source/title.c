@@ -9,6 +9,7 @@
 #include "pillar.h"
 #include "puzzle.h"
 #include "guide.h"
+#include "options.h"
 #include "menu.h"
 #include "main.h"
 #include "title.h"
@@ -35,9 +36,6 @@ u8* menuID = (u8*)(ADR4);               // Used to keep track of which (sub)menu
 const void titleStart() {
   int pilID;
   
-  // Set default options.
-  puzDispOptions = PUZDISP_HIGHLIGHT2;
-  
   // Set video mode to 0.
   lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D;
   
@@ -55,6 +53,10 @@ const void titleStart() {
   CBB_CLEAR(1);
   CBB_CLEAR(2);
   CBB_CLEAR(3);
+  
+  // Set BG1 offset to 0,0.
+  lcdioBuffer.bg1hofs = 0;
+  lcdioBuffer.bg1vofs = 0;
   
   // Used by titleLoad to determine when to move to next state.
   *titleLoadProgress = 0;
@@ -237,13 +239,13 @@ const void selectCuGm(const struct MenuItem* mi) {
   puzzle[0].stageMax = 1;
   puzzle[0].stageCur = 1;
   
-  tte_set_pos(64, 0);
+  tte_set_pos(144, 58);
   tte_write("2");
   puzzle[0].length = 2;
-  tte_set_pos(64, 16);
+  tte_set_pos(144, 74);
   tte_write("2");
   puzzle[0].breadth = 2;
-  tte_set_pos(64, 32);
+  tte_set_pos(144, 90);
   tte_write("1");
   puzzle[0].height = 1;
 }
@@ -255,13 +257,13 @@ const void hoverCuGmItems(const struct MenuItem* mi) {
   const int lim[6] = {PUZ_LENGTH_MIN, PUZ_LENGTH_MAX,
                       PUZ_BREADTH_MIN, PUZ_BREADTH_MAX,
                       PUZ_HEIGHT_MIN, PUZ_HEIGHT_MAX};
-  const int y = mi->id << 4;
   u8* dim = (&puzzle[0].length) + mi->id;
   int change = false;
   char dimGlyph[2] = {'0', '\0'};
   
-  // Draw additional cursor.
-  drawMenuCursorFlip(mi);
+  // Draw two cursors.
+  drawMenuCursor(mi, 69, 0);
+  drawMenuCursorFlip(mi, 52, 0);
   
   // Change dimension value based on input.
   int keyTrib = KEY_EQ(key_hit, KEY_RIGHT) - KEY_EQ(key_hit, KEY_LEFT);
@@ -279,8 +281,8 @@ const void hoverCuGmItems(const struct MenuItem* mi) {
   
   // Redraw dimension value if it changed.
   if (change) {
-    tte_erase_rect(64, y, 72, y+16);
-    tte_set_pos(64, y);
+    tte_erase_rect(144, mi->y, 152, mi->y + 16);
+    tte_set_pos(144, mi->y);
     dimGlyph[0] = '0' + *dim;
     tte_write(dimGlyph);
   }
@@ -288,9 +290,14 @@ const void hoverCuGmItems(const struct MenuItem* mi) {
 
 // Routine run when selecting "Guide" on titlemenu.
 const void selectGu(const struct MenuItem* mi) {
-  menuClear();
   
   lcdioBuffer.dispcnt = 0;      // Disable all display.
-  
   setGameState(GAME_GUIDE, GUIDE_START);
+}
+
+// Routine run when selecting "Options" on titlemenu.
+const void selectOp(const struct MenuItem* mi) {
+  
+  lcdioBuffer.dispcnt = 0;      // Disable all display.
+  setGameState(GAME_OPTIONS, OPTIONS_START);
 }

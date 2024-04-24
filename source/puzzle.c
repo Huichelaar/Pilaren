@@ -4,18 +4,23 @@
 #include "lcdiobuffer.h"
 #include "menu.h"
 #include "main.h"
+#include "lang.h"
 #include "pillar.h"
 #include "guide.h"
+#include "options.h"
+#include "video.h"
+#include "title.h"
 #include "gfx/system.h"
 #include "gfx/pil.h"
 #include "puzzle.h"
-#include "video.h"
+
 
 EWRAM_DATA s16 initPilCamY;
-EWRAM_DATA s16 initBGOfsY;
-EWRAM_DATA s16 initBGOfsY2;
-EWRAM_DATA struct Puzzle puzzle[2];
+EWRAM_DATA s16 initBGOfsY[3];
 EWRAM_DATA u8 puzDispOptions;
+EWRAM_DATA u8 puzPad5[3];
+EWRAM_DATA struct Puzzle puzzle[2];
+
 
 /* Sets upper nybble of all pillar->colour panes/elements in given pillar's
    row or column of puzzle array if pane is matched in row or column.
@@ -141,7 +146,7 @@ const void puzDrawAll(int puzID) {
     obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
     
     // Set tile.
-    obj.attr2 |= ((i << 5) & ATTR2_ID_MASK);
+    obj.attr2 |= ((i << 5) & ATTR2_ID_MASK) | ATTR2_PRIO(1);
     
     // Mask with pillar specific attributes (no coordinates!)
     obj.attr0 |= pil->objMask.attr0;
@@ -155,18 +160,18 @@ const void puzDrawAll(int puzID) {
 }
 
 // Draws sprites highlighting matching panes in rows and columns.
-const void puzDrawMatch(int puzID, int timer) {
+const void puzDrawMatch(int puzID, u8 puzDisp, int timer) {
   int bld, i, j;
   const COLOR clrs[4] = {0x3E0, 0x3E0, 0x3E0, 0x3E0};   // Green. As green as it gets.
   COLOR bldClrs[4];
   s16 x, y, xPane, yPane;
   OBJ_ATTR obj = {0x8000, 0, 0, 0};
   
-  if ((puzDispOptions & 0xF0) == PUZDISP_DISABLE)
+  if (puzDisp & PUZDISP_MATCHDISABLE)
     return;
   
   // Blend palettes.
-  if ((puzDispOptions & 0xF0) == PUZDISP_MATCH1) {
+  if ((puzDisp & 0xF0) == PUZDISP_MATCH1) {
     bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
     clr_blend(&systemPal[3], clrs, bldClrs, 4, bld);
     loadColours(bldClrs, 291, 4);
@@ -179,6 +184,8 @@ const void puzDrawMatch(int puzID, int timer) {
       continue;     // Offscreen; Don't draw.
     if (puzzle[puzID].pil[i].animID != PIL_ANIM_IDLE)
       continue;     // Don't draw on moving or hidden pillars.
+    if (puzzle[puzID].pil[i].id == puzzle[puzID].selPil->id && puzzle[puzID].solveStatus)
+      continue;     // Don't draw before matching row & column of selected pillar.
     for (j = 0; j < puzzle[puzID].height; j++) {
       if (puzzle[puzID].pil[i].colour[j] & 0x10) {
         // Match, draw highlight pane.
@@ -199,10 +206,11 @@ const void puzDrawMatch(int puzID, int timer) {
         obj.attr1 &= 0xFE00;
         obj.attr1 |= (xPane & ATTR1_X_MASK);
         
-        if ((puzDispOptions & 0xF0) == PUZDISP_MATCH1)
+        if ((puzDisp & 0xF0) == PUZDISP_MATCH1)
           obj.attr2 = 0x2382 + ((puzzle[puzID].pil[i].colour[j] & 3) << 1);    // Grab correct colour.
-        else //if ((puzDispOptions & 0xF0) == PUZDISP_MATCH2)
+        else //if ((puzDisp & 0xF0) == PUZDISP_MATCH2)
           obj.attr2 = 0x038A;
+        obj.attr2 |= ATTR2_PRIO(1);
         
         // Draw to screen.
         // Pillars are 64 pixels tall, hence why we add 63.
@@ -227,10 +235,11 @@ const void puzDrawMatch(int puzID, int timer) {
         obj.attr1 &= 0xFE00;
         obj.attr1 |= (xPane & ATTR1_X_MASK);
         
-        if ((puzDispOptions & 0xF0) == PUZDISP_MATCH1)
+        if ((puzDisp & 0xF0) == PUZDISP_MATCH1)
           obj.attr2 = 0x2382 + ((puzzle[puzID].pil[i].colour[j + PIL_HEIGHT_MAX] & 3) << 1);  // Grab correct colour.
-        else //if ((puzDispOptions & 0xF0) == PUZDISP_MATCH2)
+        else //if ((puzDisp & 0xF0) == PUZDISP_MATCH2)
           obj.attr2 = 0x038A;
+        obj.attr2 |= ATTR2_PRIO(1);
         
         // Draw to screen.
         // Pillars are 64 pixels tall, hence why we add 63.
@@ -241,15 +250,15 @@ const void puzDrawMatch(int puzID, int timer) {
 }
 
 // Highlight given pillar using alternate palette.
-const void puzDrawHighlight(int puzID, struct Pillar* pil, int timer) {
-  int palID, bld, layer;
+const void puzDrawCursor(int puzID, u8 puzDisp, struct Pillar* pil, int timer) {
+  int bld, layer;
   const COLOR clrs1[1] = {0x7C1F};        // Magenta. Max red and blue, min green.
   const COLOR clrs2[7] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
   COLOR bldClrs[7];
   s16 x, y;
   OBJ_ATTR obj = {0, 0, 0, 0};
   
-  if ((puzDispOptions & 0xF) == PUZDISP_DISABLE)
+  if (puzDisp & PUZDISP_CURSORDISABLE)
     return;
   
   // Only draw on idle pillars.
@@ -266,12 +275,12 @@ const void puzDrawHighlight(int puzID, struct Pillar* pil, int timer) {
   
   // Blend palette.
   bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
-  if ((puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT1) {             // Blend entire pillar periodically.
+  if ((puzDisp & 0xF) == PUZDISP_CURSOR1) {             // Blend entire pillar periodically.
     
     // Set attributes.
     obj.attr0 = (obj.attr0 & 0xFF00) | ((obj.attr0 + y) & ATTR0_Y_MASK);
     obj.attr1 = (obj.attr1 & 0xFE00) | ((obj.attr1 + x) & ATTR1_X_MASK);
-    obj.attr2 = 0x1000 | (((pil->id - 1) << 5) & ATTR2_ID_MASK);
+    obj.attr2 = 0x1000 | ATTR2_PRIO(1) | (((pil->id - 1) << 5) & ATTR2_ID_MASK);
     
     // Mask with pillar specific attributes (no coordinates!)
     obj.attr0 |= pil->objMask.attr0;
@@ -282,8 +291,8 @@ const void puzDrawHighlight(int puzID, struct Pillar* pil, int timer) {
     clr_blend(systemPal, clrs2, bldClrs, 7, bld);
     loadColours(bldClrs, 17 << 4, 7);
     
-  } else if ((puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT2 ||      // Blend top of pillar periodically.
-             (puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT3) {      // Set top of pillar to highlight colour.
+  } else if ((puzDisp & 0xF) == PUZDISP_CURSOR2 ||      // Blend top of pillar periodically.
+             (puzDisp & 0xF) == PUZDISP_CURSOR3) {      // Set top of pillar to highlight colour.
     
     // Calculate coordinates.
     y += 48 + (obj.attr0 & ATTR0_Y_MASK) - (pil->height << 3);
@@ -292,7 +301,7 @@ const void puzDrawHighlight(int puzID, struct Pillar* pil, int timer) {
     // Set attributes.
     obj.attr0 = y & ATTR0_Y_MASK;
     obj.attr1 = ATTR1_SIZE_16 | (x & ATTR1_X_MASK);
-    obj.attr2 = 0x138C;
+    obj.attr2 = 0x138C | ATTR2_PRIO(1);
     
     // Blend top of pillar.
     clr_blend(systemPal+1, clrs1, bldClrs, 1, bld);
@@ -303,8 +312,8 @@ const void puzDrawHighlight(int puzID, struct Pillar* pil, int timer) {
   // Draw to screen.
   addToOAMBuffer(&obj, layer);
   
-  // Update blended palette, unless it's PUZDISP_HIGHLIGHT3.
-  if ((puzDispOptions & 0xF) != PUZDISP_HIGHLIGHT3)
+  // Update blended palette, unless it's PUZDISP_CURSOR3.
+  if ((puzDisp & 0xF) != PUZDISP_CURSOR3)
     setSyncPalFlagsByID(17);
 }
 
@@ -471,8 +480,9 @@ const void puzInit() {
   menuClear();
   
   initPilCamY = puzzle[0].camY;
-  initBGOfsY = lcdioBuffer.bg1vofs;
-  initBGOfsY2 = lcdioBuffer.bg3vofs;
+  initBGOfsY[0] = lcdioBuffer.bg1vofs;
+  initBGOfsY[1] = lcdioBuffer.bg2vofs;
+  initBGOfsY[2] = lcdioBuffer.bg3vofs;
   
   setGameState(GAME_PUZZLE, PUZZLE_TRANSITION1);
 }
@@ -596,6 +606,89 @@ const void puzRunAnims(int puzID) {
   }
 }
 
+// Loads button prompt text.
+const void puzLoadButtonPrompts() {
+  const char* promptText[3][LANG_COUNT] = {
+    {": Terug.", ": Exit."},
+    {": Opties.", ": Settings."},
+    {": Uitleg.", ": Guide."}
+  };
+  
+  // Init.
+  tte_init_chr4c(0, BG_SBB(28), 0x7000, bytes2word(2,1,0,0), CLR_BLACK, &verdana9_b4Font, (fnDrawg)chr4c_drawg_b4cts_fast);
+  
+  // Draw text.
+  tte_set_pos(12, 145);
+  tte_write(promptText[0][gLang]);
+  tte_set_pos(190, 133);
+  tte_write(promptText[1][gLang]);
+  tte_set_pos(190, 145);
+  tte_write(promptText[2][gLang]);
+  
+  // Palette.
+  loadColours(systemPal, 7, systemPalLen>>1);
+  setSyncPalFlagsByID(7);
+}
+
+// Draws button prompt sprites.
+const void puzDrawButtonPrompts() {
+  OBJ_ATTR obj = {0, 0, 0, 0};
+  
+  // B.
+  obj.attr0 = ATTR0_BLEND | 148;
+  obj.attr1 = 2;
+  obj.attr2 = ATTR2_PALBANK(0) | 0x39B;
+  addToOAMBuffer(&obj, 0);
+  
+  // SELECT.
+  obj.attr0 = ATTR0_WIDE | ATTR0_BLEND | 137;
+  obj.attr1 = ATTR1_SIZE_8x32 | 156;
+  obj.attr2 = ATTR2_PALBANK(0) | 0x394;
+  addToOAMBuffer(&obj, 0);
+  
+  // START.
+  obj.attr0 = ATTR0_WIDE | ATTR0_BLEND | 149;
+  obj.attr1 = ATTR1_SIZE_8x32 | 156;
+  obj.attr2 = ATTR2_PALBANK(0) | 0x390;
+  addToOAMBuffer(&obj, 0);
+}
+
+// Draws additional "Return to title?" text.
+// Also calls default drawMenu.
+const void puzDrawExitMenu(const struct Menu* menu) {
+  const char* question[LANG_COUNT] = {
+    "Keer terug naar titelscherm?",
+    "Return to title?"
+  };
+  const int xOffs[LANG_COUNT] = {8, 37};
+  
+  drawMenu(menu);
+  
+  // Draw additional "Return to title?" text.
+  tte_set_pos(menu->xBox + 3 + xOffs[gLang], menu->yBox + 2);
+  tte_write(question[gLang]);
+}
+
+// Clear text and box, then exit menu.
+const void puzCancelExit() {
+  
+  // Clear box.
+  CpuFastFill(0, &bgmap[1], 0x200);
+  setSyncBGMapFlagsByID(1);
+  
+  // Clear text & re-load button prompt text.
+  CpuFastFill(0, (void*)tile_mem[0], 0x12C0);
+  puzLoadButtonPrompts();
+  
+  menuExit();
+}
+
+// Return from puzzle to title screen.
+const void puzExit() {
+  lcdioBuffer.dispcnt = 0;
+  setGameState(GAME_TITLE, TITLE_START);
+}
+
 const void puzTransition1() {
   int yOffs, pilID, i, j;
   int loBndX, hiBndX, loBndY, hiBndY;
@@ -607,9 +700,9 @@ const void puzTransition1() {
     // Move camera away from title screen.
     yOffs = ease(0, 160, gStateClock, 60, EASE_IN_QUADRATIC);
     puzzle[0].camY = initPilCamY - yOffs;
-    lcdioBuffer.bg1vofs = initBGOfsY - yOffs;
-    lcdioBuffer.bg2vofs = initBGOfsY - yOffs;
-    lcdioBuffer.bg3vofs = initBGOfsY2 - yOffs;
+    lcdioBuffer.bg1vofs = initBGOfsY[0] - yOffs;
+    lcdioBuffer.bg2vofs = initBGOfsY[1] - yOffs;
+    lcdioBuffer.bg3vofs = initBGOfsY[2] - yOffs;
     
     puzAnimRand(0, 60);
     puzRunAnims(0);
@@ -619,7 +712,7 @@ const void puzTransition1() {
     // Init LCDIO.
     lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D | DCNT_OBJ;
     lcdioBuffer.bg0cnt = BG_BUILD(0, 28, 0, 0, 0, 0, 0);
-    lcdioBuffer.bg1cnt = BG_BUILD(0, 29, 0, 0, 1, 0, 0);
+    lcdioBuffer.bg1cnt = BG_BUILD(2, 29, 0, 0, 0, 0, 0);
     lcdioBuffer.bg2cnt = BG_BUILD(0, 30, 0, 0, 2, 0, 0);
     lcdioBuffer.bg3cnt = BG_BUILD(0, 31, 0, 0, 3, 0, 0);
     
@@ -628,7 +721,9 @@ const void puzTransition1() {
     CBB_CLEAR(1);
     CBB_CLEAR(2);
     CBB_CLEAR(3);
-    CpuFastFill(0, &bgmap[0], 0x800);
+    
+    // Draw button prompts on BG0.
+    puzLoadButtonPrompts();
     
     // Reset BG HOFS and VOFS.
     lcdioBuffer.bg0hofs = 0;
@@ -699,17 +794,36 @@ const void puzTransition1() {
 }
 
 const void puzTransition2() {
+  int bld;
+  
   if (gStateClock == 0) {
+    
+    // Setup blend for button prompt blending in.
+    lcdioBuffer.dispcnt |= DCNT_BG0 | DCNT_BG1;
+    lcdioBuffer.bldcnt = BLD_BUILD(BLD_BG0, BLD_BACKDROP, 1);
+    lcdioBuffer.bldalpha = BLDA_BUILD(0, 16);
+    
+    // Load system palette.
     loadColours((COLOR*)systemPal, 272, systemPalLen>>1);
-    if ((puzDispOptions & 0xF) == PUZDISP_HIGHLIGHT3)
+    if ((puzDispOptions & 0xF) == PUZDISP_CURSOR3)
       setColour(0x7C1F, 273);         // Magenta. Max red and blue, min green.
     setSyncPalFlagsByID(17);
+    
+    // Initialize puzzle.
     puzGenerate();
     puzzle[0].camX = -104;
     puzzle[0].camY = 160;
   } else if (gStateClock < 45) {
+    
+    // Blend in button prompts.
+    bld = ease(0, 16, gStateClock, 45, EASE_OUT_QUADRATIC);
+    lcdioBuffer.bldalpha = BLDA_BUILD(bld, 16 - bld);
+    
+    // Scroll puzzle in.
     puzzle[0].camY = ease(160, 14, gStateClock, 45, EASE_OUT_QUADRATIC);
   } else {
+    lcdioBuffer.bldcnt = 0;
+    
     puzzle[0].camY = 14;
     
     puzzle[0].selPil = &puzzle[0].pil[0];
@@ -721,30 +835,42 @@ const void puzTransition2() {
   
   puzRunAnims(0);
   puzDrawAll(0);
+  puzDrawButtonPrompts();
   gStateClock++;
 }
 
 const void puzIdle() {
   int moved;
   
-  // Only handle input if selected pillar is not still moving.
-  if (puzzle[0].selPil->animID == PIL_ANIM_IDLE) {
+  // Handle menu.
+  if (isThereAnActiveMenu())
+    runMenus();
+  else if (puzzle[0].selPil->animID == PIL_ANIM_IDLE) { // Only handle input if selected pillar is not still moving.
     
+    // Match panes again after pillar was turned.
     if (puzzle[0].solveStatus) {
       puzMatchRowOrCol((puzzle[0].selPil->id - 1) / puzzle[0].breadth, false);
       puzMatchRowOrCol((puzzle[0].selPil->id - 1) % puzzle[0].breadth, true);
       puzzle[0].solveStatus = false;
     }
   
-    // Handle fire button input.
-    if (key_hit(KEY_A)) {
+    // Handle button input.
+    if (key_held(KEY_L)) {
+      if (key_hit(KEY_A))
+        puzDispOptions ^= PUZDISP_MATCHDISABLE;
+      if (key_hit(KEY_B))
+        puzDispOptions ^= PUZDISP_CURSORDISABLE;
+    } else if (key_hit(KEY_A)) {
       pilSetAnim(puzzle[0].selPil, PIL_ANIM_TURN);
-      puzzle[0].solveStatus = true;         // Update solved status after pillar finished turning.
+      puzzle[0].solveStatus = true;         // Re-solve puzzle after pillar finished turning.
     } else if (key_hit(KEY_B)) {
-      ; // TODO
+      addMenu(&exitMenu);
     } else if (key_hit(KEY_START)) {
       lcdioBuffer.dispcnt = 0;      // Disable all display.
       setGameState(GAME_GUIDE, GUIDE_START);
+    } else if (key_hit(KEY_SELECT)) {
+      lcdioBuffer.dispcnt = 0;      // Disable all display.
+      setGameState(GAME_OPTIONS, OPTIONS_START);
     } else {
     
       // Handle D-pad input.
@@ -759,14 +885,18 @@ const void puzIdle() {
                                 (u32)puzzle[0].selPil->right);
       if (moved)
         gStateClock = 0;
-        ; // TODO
     }
   }
   
   puzRunAnims(0);
   puzDrawAll(0);
-  puzDrawMatch(0, gStateClock);
-  puzDrawHighlight(0, puzzle[0].selPil, gStateClock);
+  
+  // Draw these only if there's no active menu.
+  if (!isThereAnActiveMenu()) {
+    puzDrawButtonPrompts();
+    puzDrawMatch(0, puzDispOptions, gStateClock);
+    puzDrawCursor(0, puzDispOptions, puzzle[0].selPil, gStateClock);
+  }
   
   gStateClock++;
 }

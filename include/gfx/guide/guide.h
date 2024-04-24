@@ -10,5 +10,7 @@
 #include "page2.h"
 #include "page2_en.h"
 #include "page2_nl.h"
+#include "page3_en.h"
+#include "page3_nl.h"
 
 #endif // GUIDE_GFX
