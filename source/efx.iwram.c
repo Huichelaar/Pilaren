@@ -116,5 +116,4 @@ const void HBlankScrollBG() {
     default:
       break;
   }
- 
 }

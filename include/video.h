@@ -31,6 +31,7 @@ struct copyOnVBlankEntry {      // Used to delay copying data until after next V
   int size;
 };
 extern struct copyOnVBlankEntry copyOnVBlankQueue[1000];
+extern u8 copyOnVBlankIndex;
 
 INLINE s8 VERT_OBJ_LAYER(int y) {
   return min(max(y, 0), SCREEN_HEIGHT + 63) / ((SCREEN_HEIGHT + 64) / LAYER_COUNT);
@@ -52,8 +53,8 @@ const void flushAffOAMBuffer();
 const void clearOAMBuffers();
 int addToOAMBuffer(OBJ_ATTR* object, u32 layer);
 int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, u32 layer);
-const void flushCopyOnVBlankQueue();
-int addToCopyOnVBlankQueue(const void* src, void* dest, int size, int mode);
+IWRAM_CODE int addToCopyOnVBlankQueue(const void* src, void* dest, int size, int mode);
+IWRAM_CODE const void flushCopyOnVBlankQueue();
 const void mapTilemap(const SCR_ENTRY* src, SCR_ENTRY* dest, int xOffs, int yOffs, int width, int height, SCR_ENTRY mask);
 
 #endif // VIDEO

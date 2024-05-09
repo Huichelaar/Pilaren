@@ -1,9 +1,9 @@
 
-//{{BLOCK(mainMenu)
+//{{BLOCK(menu)
 
 //======================================================================
 //
-//	mainMenu, 88x96@4, 
+//	menu, 88x96@4, 
 //	+ palette 4 entries, not compressed
 //	+ 10 tiles (t|f reduced) not compressed
 //	+ regular map (flat), not compressed, 11x12 
@@ -13,20 +13,18 @@
 //	Exported by Cearn's GBA Image Transmogrifier, v0.8.3
 //	( http://www.coranac.com/projects/#grit )
 //
+//  Manually edited.
+//
 //======================================================================
 
-#ifndef GRIT_MAINMENU_H
-#define GRIT_MAINMENU_H
+#ifndef GRIT_MENU_H
+#define GRIT_MENU_H
 
-#define mainMenuTilesLen 320
-extern const unsigned short mainMenuTiles[160];
+#define menuTilesLen 320
+extern const unsigned short menuTiles[160];
 
-#define mainMenuMapLen 264
-extern const unsigned short mainMenuMap[132];
+extern const unsigned short menuPal[16];
 
-#define mainMenuPalLen 32
-extern const unsigned short mainMenuPal[16];
+#endif // GRIT_MENU_H
 
-#endif // GRIT_MAINMENU_H
-
-//}}BLOCK(mainMenu)
+//}}BLOCK(menu)

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <tonc.h>
 #include "gfx/system.h"
+#include "gfx/gmenu.h"
 #include "lang.h"
 #include "efx.h"
 #include "lcdiobuffer.h"
@@ -11,72 +12,86 @@
 // Last non-NULL entry of this list is the currently active menu.
 EWRAM_DATA const struct MenuItem* gMenus[MENU_MAXDEPTH];
 
+// Returns active menu.
+// Returns NULL if no active menu.
+const struct Menu* activeMenu() {
+  int i;
+  
+  for (i = 0; i < MENU_MAXDEPTH; i++)
+    if (gMenus[i] == NULL) {
+      if (i <= 0)
+        return NULL;
+      break;
+    }
+  return gMenus[i-1]->menu;
+}
+
 // Clear all menus.
 const void menuClear() {
   for (int i = 0; i < MENU_MAXDEPTH; i++)
     gMenus[i] = NULL;
 }
 
+const void menuClearTiles(const struct Menu* menu) {
+  u16 bgcnt;
+  u8 cbb;
+  
+  // Clear menu text.
+  bgcnt = *(&lcdioBuffer.bg0cnt + menu->bgIDText);
+  cbb = (bgcnt & BG_CBB_MASK) >> BG_CBB_SHIFT;
+  CpuFastFill(0, (void*)tile_mem[cbb], 0x12C0);
+  
+  // Clear menu box.
+  if (menu->mapFunc != NULL) {
+    bgcnt = *(&lcdioBuffer.bg0cnt + menu->bgIDBox);
+    CpuFastFill(0, &bgmap[menu->bgIDBox], 0x200);
+    setSyncBGMapFlagsByID(menu->bgIDBox);
+  }
+}
+
 // Clear last-in menu.
 // Re-open previous menu if there is one.
 const void menuExit() {
   int i;
+  const struct Menu* menu;
   
   // Clear last-in menu.
-  for (i = 0; i < MENU_MAXDEPTH; i++)
-    if (gMenus[i] == NULL) {
-      if (i <= 0)
-        return;
+  for (i = MENU_MAXDEPTH-1; i > 0; i--)
+    if (gMenus[i] != NULL) {
       break;
     }
-  gMenus[i-1] = NULL;
+  if (gMenus[i] != NULL) {
+    menuClearTiles(gMenus[i]->menu);
+    gMenus[i] = NULL;
+  }
   
   // Re-open previous menu if there is one.
-  if (i >= 2)
-    gMenus[i-2]->menu->onOpen(gMenus[i-2]->menu);
+  menu = activeMenu();
+  if (menu != NULL)
+    menu->onOpen(menu);
 }
 
 // Draw menu box and text.
 const void drawMenu(const struct Menu* menu) {
-  u16* bgofs;
   u16 bgcnt;
   u8 sbb, cbb, i;
+  
+  // Clear menu tiles.
+  menuClearTiles(menu);
   
   // Load cursor palette & tiles.
   CpuFastSet((void*)systemTiles, (void*)(&tile_mem_obj[1][384]), systemTilesLen>>2);
   loadColours((COLOR*)systemPal, (menu->palIDCursor+16)*16, systemPalLen>>1);
   setSyncPalFlagsByID(menu->palIDCursor+16);
   
-  // Box.
-  bgcnt = *(&lcdioBuffer.bg0cnt + menu->bgIDBox);
-  cbb = (bgcnt & BG_CBB_MASK) >> BG_CBB_SHIFT;
-  if (menu->tiles) {
-    
-    // Move box BG HOFS and VOFS.
-    bgofs = (&lcdioBuffer.bg0hofs + (menu->bgIDBox<<1));
-    *bgofs = -menu->xBox;
-    bgofs = (&lcdioBuffer.bg0vofs + (menu->bgIDBox<<1));
-    *bgofs = -menu->yBox;
-    
-    // Load box tiles.
-    CpuFastSet(menu->tiles, (void*)tile_mem[cbb], menu->tileLen>>2);
+  // Box tiles.
+  if (menu->mapFunc != NULL)
+    menu->mapFunc(menu);
   
-    // Map box.
-    mapTilemap(menu->map, bgmap[menu->bgIDBox], 0, 0, menu->wBox, menu->hBox, menu->palIDBox << 12);
-    setSyncBGMapFlagsByID(menu->bgIDBox);
-  
-    // Load box palette.
-    loadColours(menu->pal, menu->palIDBox*16, menu->palLen);
-    setSyncPalFlagsByID(menu->palIDBox);
-  }
-  
-  // Clear menu item tiles.
+  // Init menu item text.
   bgcnt = *(&lcdioBuffer.bg0cnt + menu->bgIDText);
   cbb = (bgcnt & BG_CBB_MASK) >> BG_CBB_SHIFT;
   sbb = (bgcnt & BG_SBB_MASK) >> BG_SBB_SHIFT;
-  CpuFastFill(0, (void*)tile_mem[cbb], 0x12C0);
-  
-  // Init menu item text.
   tte_init_chr4c(menu->bgIDText, BG_CBB(cbb)|BG_SBB(sbb), menu->palIDText << 12, bytes2word(3,2,0,0), CLR_WHITE, &verdana9_b4Font, (fnDrawg)chr4c_drawg_b4cts_fast);
   loadColours((COLOR*)systemPal, menu->palIDText*16, systemPalLen>>1);
   setSyncPalFlagsByID(menu->palIDText);
@@ -88,6 +103,60 @@ const void drawMenu(const struct Menu* menu) {
     tte_write(menu->items[i]->name[gLang]);
     i++;
   }
+}
+
+// Draws tiles of menu based on width & height.
+const void mapDefaultMenu(const struct Menu* menu) {
+  u16* bgofs;
+  u16 bgcnt;
+  u8 cbb;
+  const int bg = menu->bgIDBox;
+  const int pal = SE_PALBANK(menu->palIDBox);
+  int i, j;
+  
+  bgcnt = *(&lcdioBuffer.bg0cnt + bg);
+  cbb = (bgcnt & BG_CBB_MASK) >> BG_CBB_SHIFT;
+  
+  // Move box BG HOFS and VOFS.
+  bgofs = (&lcdioBuffer.bg0hofs + (bg << 1));
+  *bgofs = -menu->xBox;
+  bgofs = (&lcdioBuffer.bg0vofs + (bg << 1));
+  *bgofs = -menu->yBox;
+  
+  // Load box tiles.
+  CpuFastSet(menuTiles, (void*)tile_mem[cbb], menuTilesLen>>2);
+
+  // Clear previous tiles.
+  CpuFastFill(0, &bgmap[bg], 0x200);
+
+  // Map box.
+  // Top edge.
+  bgmap[bg][0] = pal | 1;
+  for (i = 1; i < (menu->wBox - 2); i++)
+    bgmap[bg][i] = pal | 2;
+  bgmap[bg][i] = pal | SE_HFLIP | 1;
+  bgmap[bg][i + 1] = pal | 3;
+  
+  // Middle.
+  for (j = 32; j < ((menu->hBox - 1) * 32); j += 32) {
+    bgmap[bg][j] = pal | 4;
+    for (i = 1; i < (menu->wBox - 2); i++)
+      bgmap[bg][j + i] = pal | 5;
+    bgmap[bg][j + i] = pal | SE_HFLIP | 4;
+    bgmap[bg][j + i + 1] = pal | 6;
+  }
+  
+  // Bottom edge.
+  bgmap[bg][j] = pal | 7;
+  for (i = 1; i < (menu->wBox - 1); i++)
+    bgmap[bg][j + i] = pal | 8;
+  bgmap[bg][j + i] = pal | 9;
+  
+  setSyncBGMapFlagsByID(bg);
+
+  // Load box palette.
+  loadColours(menu->pal, menu->palIDBox*16, menu->palLen);
+  setSyncPalFlagsByID(menu->palIDBox);
 }
 
 // Add menu to end of menu list.
@@ -103,12 +172,6 @@ int addMenu(const struct Menu* menu) {
     }
   }
   return false;
-}
-
-// Returns true if there's at least one active menu.
-// Returns false otherwise.
-int isThereAnActiveMenu() {
-  return (gMenus[0] != NULL);
 }
 
 const void drawMenuCursor(const struct MenuItem* mi, int xOffs, int yOffs) {

@@ -34,10 +34,6 @@ const void optionsStart() {
   lcdioBuffer.bg0hofs = 0;
   lcdioBuffer.bg0vofs = 0;
   
-  // Init text.
-  tte_init_chr4c(0, BG_SBB(28), 7 << 12, bytes2word(3,2,0,0), CLR_WHITE, &verdana9_b4Font, (fnDrawg)chr4c_drawg_b4cts_fast);
-  loadColours(systemPal, 7*16, systemPalLen>>1);
-  
   // Init example pillars.
   puzzle[1].length = 2;
   puzzle[1].breadth = 1;
@@ -60,6 +56,11 @@ const void optionsStart() {
   // Set BG to dark green.
   setColour(12<<5, 0);
   setSyncPalFlagsByMask(0x81);
+  
+  if (puzDispOptions == PUZDISP_CURSOR3) {  // Load pal for this option.
+    setColour(0x7C1F, 273);                 // Magenta. Max red and blue, min green.
+    setSyncPalFlagsByID(17);
+  }
   
   // Enable menu & BGs
   addMenu(&optionsMenu);
@@ -101,15 +102,6 @@ const void exitOp() {
 // Display extra menu cursor and change
 // option values based on directional input.
 const void hoverOpItems(const struct MenuItem* mi) {
-  /*
-  const int lim[6] = {PUZ_LENGTH_MIN, PUZ_LENGTH_MAX,
-                      PUZ_BREADTH_MIN, PUZ_BREADTH_MAX,
-                      PUZ_HEIGHT_MIN, PUZ_HEIGHT_MAX};
-  const int y = mi->id << 4;
-  u8* dim = (&puzzle[0].length) + mi->id;
-  int change = false;
-  char dimGlyph[2] = {'0', '\0'};
-  */
   
   // Draw additional cursor.
   drawMenuCursor(mi, 0, 0);
@@ -121,33 +113,41 @@ const void hoverOpItems(const struct MenuItem* mi) {
   if (keyTrib == 0)
     return;
   
-  setColour(0x7C1F, 273);         // Magenta. Max red and blue, min green.
-  setSyncPalFlagsByID(17);
+  // Change puzDispOptions on input.
+  // Cursor display.
   if (mi->id == 0) {
     if (keyTrib == -1) {
+      
+      // Change displayed option.
       if ((puzDispOptions & 0x07) == PUZDISP_CURSOR1)
         puzDispOptions = (puzDispOptions & 0xF8) | PUZDISP_CURSOR3;
       else
         puzDispOptions -= 1;
+      
+      // Load pal for solid colour option.
+      if ((puzDispOptions & 0x07) == PUZDISP_CURSOR3) {  
+        setColour(CLR_MAGENTA, 273);
+        setSyncPalFlagsByID(17);
+      }
+      
     } else if (keyTrib == 1) {
+      
+      // Change displayed option.
       if ((puzDispOptions & 0x07) == PUZDISP_CURSOR3)
         puzDispOptions = (puzDispOptions & 0xF8) | PUZDISP_CURSOR1;
       else
         puzDispOptions += 1;
+      
+      // Load pal for solid colour option.
+      if ((puzDispOptions & 0x07) == PUZDISP_CURSOR3) {  
+        setColour(CLR_MAGENTA, 273);
+        setSyncPalFlagsByID(17);
+      }
+      
     }
+  // Match display.
   } else if (mi->id == 1)
     puzDispOptions ^= (PUZDISP_MATCH1 | PUZDISP_MATCH2);
-
-  
-  /*
-  // Redraw dimension value if it changed.
-  if (change) {
-    tte_erase_rect(64, y, 72, y+16);
-    tte_set_pos(64, y);
-    dimGlyph[0] = '0' + *dim;
-    tte_write(dimGlyph);
-  }
-  */
 }
 
 const void optionsUpdate() {

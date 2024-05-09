@@ -68,10 +68,9 @@ struct PillarTileData {
 
 const void pilGenerateRandColours(u8* clrs);
 struct Pillar pilConstr(u8* colours, s16 x, s16 y);
-//const void removePil(int pilID);
 struct Pillar* genRandPil();
-const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
 const void pilSetAnim(struct Pillar* pil, u8 animID);
 int pilCalcCoords(struct Pillar* pil, s16* x, s16* y, s16 camX, s16 camY);
+IWRAM_CODE const void pilLoadTiles(struct Pillar* pil, int offsVRAM);
 
 #endif // PILLAR

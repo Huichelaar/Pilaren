@@ -19,9 +19,7 @@ struct Menu {
   const void (*onOpen)(const struct Menu* menu);    // Run routine when opening menu.
   const void (*onCancel)(const struct Menu* menu);  // Run routine on B-press.
   
-  void* tiles;                                      // These params refer to the box.
-  int tileLen;
-  SCR_ENTRY* map;
+  const void (*mapFunc)(const struct Menu* menu);   // Function that draws tilemap. If NULL, don't draw.
   COLOR* pal;
   int palLen;
   
@@ -51,13 +49,18 @@ extern const struct MenuItem* gMenus[MENU_MAXDEPTH];
 extern const struct Menu titleMenu;
 extern const struct Menu customGameMenu;
 extern const struct Menu optionsMenu;
-extern const struct Menu exitMenu;
+extern const struct Menu puzMainMenu;
+extern const struct Menu puzExitMenu;
+extern const struct Menu puzSolvedMenu;
+extern const struct Menu puzStageSolvedMenu;
 
+const struct Menu* activeMenu();
 const void menuClear();
+const void menuClearTiles(const struct Menu* menu);
 const void menuExit();
 const void drawMenu(const struct Menu* menu);
+const void mapDefaultMenu(const struct Menu* menu);
 int addMenu(const struct Menu* menu);
-int isThereAnActiveMenu();
 const void drawMenuCursor(const struct MenuItem* mi, int xOffs, int yOffs);
 const void drawMenuCursorFlip(const struct MenuItem* mi, int xOffs, int yOffs);
 int runMenus();

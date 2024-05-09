@@ -14,6 +14,9 @@ enum {
   GAME_PUZZLE = 3,
   GAME_GUIDE = 4,
   GAME_OPTIONS = 5,
+  
+  // More colours.
+  CLR_MAGENTA = 0x7C1F
 };
 extern u32 gGameState;
 extern u32 gPrevGameState;

@@ -17,9 +17,9 @@ const char* guidePageText[GUIDE_PAGECOUNT][LANG_COUNT] = {
   
   "#{ci:3}Higher-stage matrices contain #{ci:12}multistorey#{ci:3}\npillars. The puzzle is solved if, for each\n#{ci:15}column#{ci:3} and #{ci:13}row#{ci:3}, the colours of all panes\nof at least one #{ci:12}storey#{ci:3} match.\n\nThis stage-2 matrix is solved;\n#{ci:13}Row 1#{ci:3},#{ci:12} storey 1 #{ci:3}matches.\n#{ci:13}Row 2#{ci:3},#{ci:12} storey 1 #{ci:4}matches#{ci:3}.\n#{ci:13}Row 3#{ci:3},#{ci:12} storey 1 #{ci:3}matches.\n#{ci:15}Column 1#{ci:3},#{ci:12} storey 1 #{ci:5}matches#{ci:3}.\n#{ci:15}Column 2#{ci:3},#{ci:12} storey 2 #{ci:5}matches#{ci:3}.\n#{ci:15}Column 3#{ci:3},#{ci:12} storey 2 #{ci:3}matches.\n"},
   
-  {"#{ci:3}Knopgebruik tijdens puzzels:#{P:35,24}: Draai geselecteerde pilaar.#{P:35,36}: Terug naar titelscherm.#{P:35,48}: Selecteer andere pilaar.#{P:35,60}: Selecteer diagonaal andere pilaar.#{P:35,72}: Toon geselecteerde pilaar wel/niet.#{P:35,84}: Markeer gelijke vlakken wel/niet.#{P:35,96}: Opties.#{P:35,108}: Uitleg.",
+  {"#{ci:3}Knopgebruik tijdens puzzels:#{P:35,24}: Draai geselecteerde pilaar.#{P:35,36}: Terug naar titelscherm.#{P:35,48}: Selecteer andere pilaar.#{P:35,60}: Selecteer diagonaal andere pilaar.#{P:35,72}: Markeer geselecteerde pilaar wel/niet.#{P:35,84}: Markeer gelijke vlakken wel/niet.#{P:35,96}: Open menu.#{P:35,108}: Bevestig oplossing.",
   
-  "#{ci:3}Button controls during puzzles:#{P:35,24}: Turn selected pillar.#{P:35,36}: Return to title screen.#{P:35,48}: Select different pillar.#{P:35,60}: Select different pillar diagonally.#{P:35,72}: Highlight selected pillar on/off.#{P:35,84}: Highlight matching panes on/off.#{P:35,96}: Settings.#{P:35,108}: Guide."}
+  "#{ci:3}Button controls during puzzles:#{P:35,24}: Turn selected pillar.#{P:35,36}: Return to title screen.#{P:35,48}: Select different pillar.#{P:35,60}: Select different pillar diagonally.#{P:35,72}: Highlight selected pillar on/off.#{P:35,84}: Highlight matching panes on/off.#{P:35,96}: Open menu.#{P:35,108}: Confirm solution."}
 };
 
 // Text, but rendered at compile time. Tiles.

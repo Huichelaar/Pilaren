@@ -1,0 +1,11 @@
+If I ever wish to make another homebrew GBA project, here's what I should try to do (differently):
+
+- Need some function that maps menu tiles by being given width and height. Otherwise I need to create new tilemaps for every combination of dimensions used, which causes unnecessary clutter. Also keep in mind alternative tilemaps or even tilesets.
+
+- Add usability routine functions to menu items (early on). Menu items shouldn't individually have X and Y values, as these should be determined based on which items will or will not display at runtime. Maybe put menu & menu items in RAM, that way pointers to other menu items linked to d-pad buttons can also be adapted at run-time based on which items display.
+
+- Try to figure out how to match sprites and BGs so you don't get single or multi-frame delays. Alternatively use fading out/in, although this might take longer.
+
+- Pilaren doesn't use a proc system like what FEGBA uses. There are available free-to-use threading libraries, but so far their implementation is a bit 'extreme' for me. When 'switching threads', all registers get pushed to stack for example. I like how FEGBA's proc system is a bit more limited. Idk if I want to implement a system like FEGBA's proc system, as Pilaren makes do fine with its 'phase-based' setup as I call it.
+
+- Move all text to a separate text folder. Prefix files with 't' to avoid multiple definition errors. Adding new languages should be easier this way.

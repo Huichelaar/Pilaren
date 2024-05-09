@@ -5,8 +5,7 @@
 #include "puzzle.h"
 #include "guide.h"
 #include "options.h"
-#include "gfx/mainMenu.h"
-#include "gfx/exitMenu.h"
+#include "gfx/gmenu.h"
 #include "menu.h"
 
 const struct MenuItem titleMenuItemStGm;
@@ -31,10 +30,8 @@ const struct Menu titleMenu = {
   {0, 0, 0},
   &drawMenu,
   NULL,
-  (void*)mainMenuTiles,
-  mainMenuTilesLen,
-  (SCR_ENTRY*)mainMenuMap,
-  (COLOR*)mainMenuPal,
+  &mapDefaultMenu,
+  (COLOR*)menuPal,
   4,
   (const struct MenuItem** const)&titleMenuItems,
 };
@@ -47,7 +44,7 @@ const struct MenuItem titleMenuItemStGm = {
   0,
   {0, 0, 0},
   NULL,
-  NULL,
+  &puzInitDefault,
   NULL,
   NULL,
   &titleMenuItemGu,
@@ -135,10 +132,8 @@ const struct Menu customGameMenu = {
   {0, 0, 0},
   &drawMenu,
   &menuExit,
-  (void*)mainMenuTiles,
-  mainMenuTilesLen,
-  (SCR_ENTRY*)mainMenuMap,
-  (COLOR*)mainMenuPal+3,
+  &mapDefaultMenu,
+  (COLOR*)menuPal+3,
   4,
   (const struct MenuItem** const)&customGameMenuItems,
 };
@@ -258,8 +253,6 @@ const struct Menu optionsMenu = {
   &drawMenu,
   &exitOp,
   NULL,
-  0,
-  NULL,
   NULL,
   0,
   (const struct MenuItem** const)&optionsMenuItems,
@@ -341,12 +334,116 @@ const struct MenuItem optionsMenuItemSfx = {
   NULL,
 };
 
-const struct MenuItem exitMenuItemNo;
-const struct MenuItem exitMenuItemYes;
-const struct MenuItem* const exitMenuItems[3] = {&exitMenuItemNo,
-                                                 &exitMenuItemYes, NULL};
+const struct MenuItem puzMainMenuItemOptions;
+const struct MenuItem puzMainMenuItemGuide;
+const struct MenuItem puzMainMenuItemExit;
+const struct MenuItem puzMainMenuItemBack;
+const struct MenuItem* const puzMainMenuItems[5] = {&puzMainMenuItemOptions,
+                                                    &puzMainMenuItemGuide,
+                                                    &puzMainMenuItemExit,
+                                                    &puzMainMenuItemBack, NULL};
 
-const struct Menu exitMenu = {
+const struct Menu puzMainMenu = {
+  0,
+  1,
+  86,
+  40,
+  9,
+  10,
+  6,
+  7,
+  0,
+  {0, 0, 0},
+  &drawMenu,
+  &puzMenuExit,
+  &mapDefaultMenu,
+  (COLOR*)menuPal,
+  4,
+  (const struct MenuItem** const)&puzMainMenuItems,
+};
+
+const struct MenuItem puzMainMenuItemOptions = {
+  &puzMainMenu,
+  {"   Opties", "   Settings"},
+  86,
+  42,
+  0,
+  {0, 0, 0},
+  NULL,
+  &selectOp,
+  NULL,
+  NULL,
+  &puzMainMenuItemBack,
+  &puzMainMenuItemGuide,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzMainMenuItemGuide = {
+  &puzMainMenu,
+  {"   Uitleg", "   Guide"},
+  86,
+  58,
+  1,
+  {0, 0, 0},
+  NULL,
+  &selectGu,
+  NULL,
+  NULL,
+  &puzMainMenuItemOptions,
+  &puzMainMenuItemExit,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzMainMenuItemExit = {
+  &puzMainMenu,
+  {"   Exit", "   Exit"},
+  86,
+  74,
+  2,
+  {0, 0, 0},
+  NULL,
+  &puzStartExitMenu,
+  NULL,
+  NULL,
+  &puzMainMenuItemGuide,
+  &puzMainMenuItemBack,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzMainMenuItemBack = {
+  &puzMainMenu,
+  {"   Terug", "   Back"},
+  86,
+  90,
+  3,
+  {0, 0, 0},
+  NULL,
+  &puzMenuExit,
+  NULL,
+  NULL,
+  &puzMainMenuItemExit,
+  &puzMainMenuItemOptions,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzExitMenuItemNo;
+const struct MenuItem puzExitMenuItemYes;
+const struct MenuItem* const puzExitMenuItems[3] = {&puzExitMenuItemNo,
+                                                    &puzExitMenuItemYes, NULL};
+
+const struct Menu puzExitMenu = {
   0,
   1,
   42,
@@ -358,26 +455,24 @@ const struct Menu exitMenu = {
   0,
   {0, 0, 0},
   &puzDrawExitMenu,
-  &puzCancelExit,
-  (void*)mainMenuTiles,
-  mainMenuTilesLen,
-  (SCR_ENTRY*)exitMenuMap,
-  (COLOR*)mainMenuPal,
+  &puzMenuExit,
+  &mapDefaultMenu,
+  (COLOR*)menuPal,
   4,
-  (const struct MenuItem** const)&exitMenuItems,
+  (const struct MenuItem** const)&puzExitMenuItems,
 };
 
-const struct MenuItem exitMenuItemNo = {
-  &exitMenu,
+const struct MenuItem puzExitMenuItemNo = {
+  &puzExitMenu,
   {"   Nee", "   No"},
   70,
   82,
   0,
   {0, 0, 0},
   NULL,
-  &puzCancelExit,
+  &puzMenuExit,
   NULL,
-  &exitMenuItemYes,
+  &puzExitMenuItemYes,
   NULL,
   NULL,
   NULL,
@@ -386,16 +481,119 @@ const struct MenuItem exitMenuItemNo = {
   NULL,
 };
 
-const struct MenuItem exitMenuItemYes = {
-  &exitMenu,
+const struct MenuItem puzExitMenuItemYes = {
+  &puzExitMenu,
   {"   Ja", "   Yes"},
   134,
   82,
+  1,
+  {0, 0, 0},
+  NULL,
+  &puzExit,
+  &puzExitMenuItemNo,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzSolvedMenuItemYes;
+const struct MenuItem* const puzSolvedMenuItems[2] = {&puzSolvedMenuItemYes, NULL};
+
+const struct Menu puzSolvedMenu = {
+  0,
+  1,
+  6,
+  6,
+  15,
+  8,
+  6,
+  7,
+  1,
+  {0, 0, 0},
+  &puzDrawSolvedMenu,
+  NULL,
+  &mapDefaultMenu,
+  (COLOR*)menuPal+6,
+  4,
+  (const struct MenuItem** const)&puzSolvedMenuItems,
+};
+
+const struct MenuItem puzSolvedMenuItemYes = {
+  &puzSolvedMenu,
+  {"   Ja", "   Yes"},
+  14,
+  48,
   0,
   {0, 0, 0},
   NULL,
   &puzExit,
-  &exitMenuItemNo,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzStageSolvedMenuItemYes;
+const struct MenuItem puzStageSolvedMenuItemNo;
+const struct MenuItem* const puzStageSolvedMenuItems[3] = {&puzStageSolvedMenuItemYes,
+                                                           &puzStageSolvedMenuItemNo, NULL};
+
+const struct Menu puzStageSolvedMenu = {
+  0,
+  1,
+  6,
+  6,
+  15,
+  8,
+  6,
+  7,
+  1,
+  {0, 0, 0},
+  &puzDrawStageSolvedMenu,
+  NULL,
+  &mapDefaultMenu,
+  (COLOR*)menuPal+6,
+  4,
+  (const struct MenuItem** const)&puzStageSolvedMenuItems,
+};
+
+const struct MenuItem puzStageSolvedMenuItemYes = {
+  &puzStageSolvedMenu,
+  {"   Ja", "   Yes"},
+  14,
+  48,
+  0,
+  {0, 0, 0},
+  NULL,
+  &puzNextStage,
+  NULL,
+  &puzStageSolvedMenuItemNo,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+const struct MenuItem puzStageSolvedMenuItemNo = {
+  &puzStageSolvedMenu,
+  {"   Nee", "   No"},
+  46,
+  48,
+  0,
+  {0, 0, 0},
+  NULL,
+  &puzStartExitMenu,
+  &puzStageSolvedMenuItemYes,
   NULL,
   NULL,
   NULL,

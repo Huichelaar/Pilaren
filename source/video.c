@@ -10,12 +10,12 @@ EWRAM_DATA s16 oamAffBuffer[32][4] = {0};
 EWRAM_DATA u8 syncBGMapFlags = 0;
 EWRAM_DATA u8 oamIndex = 0;
 EWRAM_DATA u8 oamAffIndex = 0;
-EWRAM_DATA u8 copyOnVBlankQueueConsumed = 0;
 EWRAM_DATA u8 ewramPad1_8 = 0;
 EWRAM_DATA struct oamLayer oamLayerBuffer[128];
 EWRAM_DATA s8 oamLayerIndex;
 EWRAM_DATA s8 oamLayerEnd[LAYER_COUNT];
 EWRAM_DATA struct copyOnVBlankEntry copyOnVBlankQueue[1000] = {0};
+EWRAM_DATA u8 copyOnVBlankIndex = 0;
 
 const void setSyncBGMapFlagsByID(int bg) {
   syncBGMapFlags |= 1 << bg;
@@ -232,37 +232,6 @@ int addAffToOAMBuffer(OBJ_AFFINE* affMatr, OBJ_ATTR* object, u32 layer) {
 
   oamAffIndex++;
   return oamAffIndex - 1;
-}
-
-// Copy data as instructed in entries in queue.
-// This allows buffering data until immediately after VDraw.
-// TODO, allow sizes smaller than 8 words!
-const void flushCopyOnVBlankQueue() {
-  for (int i = 0; i < copyOnVBlankQueueConsumed; i++) {
-    
-    if (copyOnVBlankQueue[i].mode == BUFFER_FILL)
-      CpuFastFill((u32)copyOnVBlankQueue[i].src, copyOnVBlankQueue[i].dest, copyOnVBlankQueue[i].size);
-    
-    else if (copyOnVBlankQueue[i].mode == BUFFER_COPY)
-      CpuFastSet(copyOnVBlankQueue[i].src, copyOnVBlankQueue[i].dest, copyOnVBlankQueue[i].size);
-  }
-  
-  copyOnVBlankQueueConsumed = 0;
-}
-
-// Add instruction, to copy size data from src to dest,
-// to copyOnVBlankQueue. Returns true if succesful,
-// false if queue is full.
-int addToCopyOnVBlankQueue(const void* src, void* dest, int size, int mode) {
-  if (copyOnVBlankQueueConsumed >= 1000)
-    return false;
-  
-  copyOnVBlankQueue[copyOnVBlankQueueConsumed].src = src;
-  copyOnVBlankQueue[copyOnVBlankQueueConsumed].dest = dest;
-  copyOnVBlankQueue[copyOnVBlankQueueConsumed].size = size;
-  copyOnVBlankQueue[copyOnVBlankQueueConsumed].mode = mode;
-  copyOnVBlankQueueConsumed++;
-  return true;
 }
 
 // Map tileMap in src to dest.

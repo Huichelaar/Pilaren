@@ -172,31 +172,30 @@ const struct PillarSpriteData ptA2H2F0 = {{ATTR0_TALL | (-2 & ATTR0_Y_MASK), ATT
 // PIL_ANIM_LOWER. Re-use PIL_ANIM_RAISE frames.
 // HEIGHT 1.
 // FRAME 1.
-const struct PillarSpriteData ptA3H1F1 = {{ATTR0_TALL | 4, ATTR1_SIZE(3), 0, 3}, &ptA2H0F1T0, NULL};
+const struct PillarSpriteData ptA3H1F1 = {{ATTR0_TALL | 4, ATTR1_SIZE(3), 0, 5}, &ptA2H0F1T0, NULL};
 
 // FRAME 0.
-const struct PillarSpriteData ptA3H1F0 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 3}, &ptA2H0F4T0, &ptA3H1F1};
+const struct PillarSpriteData ptA3H1F0 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 6}, &ptA2H0F4T0, &ptA3H1F1};
 
 // HEIGHT 2.
 // FRAME 2.
-const struct PillarSpriteData ptA3H2F2 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 3}, &ptA2H0F4T0, NULL};
+const struct PillarSpriteData ptA3H2F2 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 4}, &ptA2H0F4T0, NULL};
 
 // FRAME 1.
-const struct PillarSpriteData ptA3H2F1 = {{ATTR0_TALL | 4, ATTR1_SIZE(3), 0, 3}, &ptA2H1F1T0, &ptA3H2F2};
+const struct PillarSpriteData ptA3H2F1 = {{ATTR0_TALL | 4, ATTR1_SIZE(3), 0, 5}, &ptA2H1F1T0, &ptA3H2F2};
 
 // FRAME 0.
-const struct PillarSpriteData ptA3H2F0 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 3}, &ptA2H1F4T0, &ptA3H2F1};
-
+const struct PillarSpriteData ptA3H2F0 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 6}, &ptA2H1F4T0, &ptA3H2F1};
 
 // HEIGHT 3.
 // FRAME 2.
-const struct PillarSpriteData ptA3H3F2 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 3}, &ptA2H1F4T0, NULL};
+const struct PillarSpriteData ptA3H3F2 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 4}, &ptA2H1F4T0, NULL};
 
 // FRAME 1.
-const struct PillarSpriteData ptA3H3F1 = {{ATTR0_TALL | 4, ATTR1_SIZE(3), 0, 3}, &ptA2H2F1T0, &ptA3H3F2};
+const struct PillarSpriteData ptA3H3F1 = {{ATTR0_TALL | 4, ATTR1_SIZE(3), 0, 5}, &ptA2H2F1T0, &ptA3H3F2};
 
 // FRAME 0.
-const struct PillarSpriteData ptA3H3F0 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 3}, &ptA2H2F4T0, &ptA3H3F1};
+const struct PillarSpriteData ptA3H3F0 = {{ATTR0_TALL | 1, ATTR1_SIZE(3), 0, 6}, &ptA2H2F4T0, &ptA3H3F1};
 
 
 // PIL_ANIM_TURN.

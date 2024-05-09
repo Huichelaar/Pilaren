@@ -15,7 +15,7 @@
 #include "puzzle.h"
 
 
-EWRAM_DATA s16 initPilCamY;
+EWRAM_DATA s16 initCam;
 EWRAM_DATA s16 initBGOfsY[3];
 EWRAM_DATA u8 puzDispOptions;
 EWRAM_DATA u8 puzPad5[3];
@@ -161,7 +161,7 @@ const void puzDrawAll(int puzID) {
 
 // Draws sprites highlighting matching panes in rows and columns.
 const void puzDrawMatch(int puzID, u8 puzDisp, int timer) {
-  int bld, i, j;
+  int bld, i, j, lMatch, rMatch;
   const COLOR clrs[4] = {0x3E0, 0x3E0, 0x3E0, 0x3E0};   // Green. As green as it gets.
   COLOR bldClrs[4];
   s16 x, y, xPane, yPane;
@@ -172,7 +172,7 @@ const void puzDrawMatch(int puzID, u8 puzDisp, int timer) {
   
   // Blend palettes.
   if ((puzDisp & 0xF0) == PUZDISP_MATCH1) {
-    bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
+    bld = ease(0, 0x1F, ABS(31 - (timer % 63)), 31, EASE_IN_QUADRATIC);
     clr_blend(&systemPal[3], clrs, bldClrs, 4, bld);
     loadColours(bldClrs, 291, 4);
     setSyncPalFlagsByID(18);
@@ -181,11 +181,15 @@ const void puzDrawMatch(int puzID, u8 puzDisp, int timer) {
   // Draw pane sprites.
   for (i = 0; i < puzzle[puzID].length * puzzle[puzID].breadth; i++) {
     if (!pilCalcCoords(&puzzle[puzID].pil[i], &x, &y, puzzle[puzID].camX, puzzle[puzID].camY))
-      continue;     // Offscreen; Don't draw.
+      continue;         // Offscreen; Don't draw.
+    if (!puzIsPilValid(&puzzle[puzID].pil[i]))
+      continue;         // Don't draw panes on invalid pillars.
     if (puzzle[puzID].pil[i].animID != PIL_ANIM_IDLE)
-      continue;     // Don't draw on moving or hidden pillars.
+      continue;         // Don't draw on moving or hidden pillars.
     if (puzzle[puzID].pil[i].id == puzzle[puzID].selPil->id && puzzle[puzID].solveStatus)
-      continue;     // Don't draw before matching row & column of selected pillar.
+      continue;         // Don't draw before matching row & column of selected pillar.
+    lMatch = 0x2000;    // These are used to only show
+    rMatch = 0x2000;    // the first matching pane of each side.
     for (j = 0; j < puzzle[puzID].height; j++) {
       if (puzzle[puzID].pil[i].colour[j] & 0x10) {
         // Match, draw highlight pane.
@@ -206,9 +210,12 @@ const void puzDrawMatch(int puzID, u8 puzDisp, int timer) {
         obj.attr1 &= 0xFE00;
         obj.attr1 |= (xPane & ATTR1_X_MASK);
         
-        if ((puzDisp & 0xF0) == PUZDISP_MATCH1)
+        if ((puzDisp & 0xF0) == PUZDISP_MATCH1) {
           obj.attr2 = 0x2382 + ((puzzle[puzID].pil[i].colour[j] & 3) << 1);    // Grab correct colour.
-        else //if ((puzDisp & 0xF0) == PUZDISP_MATCH2)
+        } else if ((puzDisp & 0xF0) == PUZDISP_MATCH3) {
+          obj.attr2 = 0x0382 + ((puzzle[puzID].pil[i].colour[j] & 3) << 1) + lMatch;
+          lMatch = 0;
+        } else if ((puzDisp & 0xF0) == PUZDISP_MATCH2)
           obj.attr2 = 0x038A;
         obj.attr2 |= ATTR2_PRIO(1);
         
@@ -235,9 +242,12 @@ const void puzDrawMatch(int puzID, u8 puzDisp, int timer) {
         obj.attr1 &= 0xFE00;
         obj.attr1 |= (xPane & ATTR1_X_MASK);
         
-        if ((puzDisp & 0xF0) == PUZDISP_MATCH1)
-          obj.attr2 = 0x2382 + ((puzzle[puzID].pil[i].colour[j + PIL_HEIGHT_MAX] & 3) << 1);  // Grab correct colour.
-        else //if ((puzDisp & 0xF0) == PUZDISP_MATCH2)
+        if ((puzDisp & 0xF0) == PUZDISP_MATCH1) {
+          obj.attr2 = 0x2382 + ((puzzle[puzID].pil[i].colour[j + PIL_HEIGHT_MAX] & 3) << 1);
+        } else if ((puzDisp & 0xF0) == PUZDISP_MATCH3) {
+          obj.attr2 = 0x0382 + ((puzzle[puzID].pil[i].colour[j + PIL_HEIGHT_MAX] & 3) << 1) + rMatch;
+          rMatch = 0;
+        } else if ((puzDisp & 0xF0) == PUZDISP_MATCH2)
           obj.attr2 = 0x038A;
         obj.attr2 |= ATTR2_PRIO(1);
         
@@ -274,7 +284,7 @@ const void puzDrawCursor(int puzID, u8 puzDisp, struct Pillar* pil, int timer) {
   obj_copy(&obj, &pil->spriteData->obj, 1);
   
   // Blend palette.
-  bld = ease(0, 0x1F, ABS(15 - (timer % 31)), 15, EASE_IN_QUADRATIC);
+  bld = ease(0, 0x1F, ABS(31 - (timer % 63)), 31, EASE_IN_QUADRATIC);
   if ((puzDisp & 0xF) == PUZDISP_CURSOR1) {             // Blend entire pillar periodically.
     
     // Set attributes.
@@ -402,7 +412,7 @@ const void puzGenerate() {
       for (col = 0; col < puzzle[0].breadth; col++) {
         pil = pilConstr(clrs[row][col], col * PIL_TILE_WIDTH, row * PIL_TILE_HEIGHT);
         id = puzAddPil(0, &pil);
-        puzzle[0].pil[id].height = puzzle[0].height;
+        puzzle[0].pil[id].height = 0;
         pilSetAnim(&puzzle[0].pil[id], PIL_ANIM_IDLE);
         
         // Set neighbouring pillar pointers.
@@ -466,6 +476,35 @@ const void puzGenerate() {
     }
     */
     
+    /* Add flavour pillars if we're not in the final stage of a multi-stage puzzle.
+       We use two loops to iterate over all open spots (*).
+       
+            / col
+       row / 
+              o o * *       Loop 1
+              o o * *       Loop 1
+              * * * *       Loop 2
+              * * * *       Loop 2
+    */
+    if (puzzle[0].stageCur != puzzle[0].stageMax) {
+      for (row = 0; row < puzzle[0].length; row++) {
+        for (col = puzzle[0].breadth; col < PUZ_BREADTH_MAX; col++) { 
+          pil = pilConstr(clrs[0][0], col * PIL_TILE_WIDTH, row * PIL_TILE_HEIGHT);
+          id = puzAddPil(0, &pil);
+          puzzle[0].pil[id].height = 0;
+          pilSetAnim(&puzzle[0].pil[id], PIL_ANIM_IDLE);
+        }
+      }
+      for (row = puzzle[0].length; row < PUZ_LENGTH_MAX; row++) {
+        for (col = 0; col < PUZ_BREADTH_MAX; col++) { 
+          pil = pilConstr(clrs[0][0], col * PIL_TILE_WIDTH, row * PIL_TILE_HEIGHT);
+          id = puzAddPil(0, &pil);
+          puzzle[0].pil[id].height = 0;
+          pilSetAnim(&puzzle[0].pil[id], PIL_ANIM_IDLE);
+        }
+      }
+    }
+    
     // Create a new puzzle if puzzle is already solved.
     for (row = 0; row < puzzle[0].length; row++)
       puzMatchRowOrCol(row, false);
@@ -479,12 +518,23 @@ const void puzGenerate() {
 const void puzInit() {
   menuClear();
   
-  initPilCamY = puzzle[0].camY;
+  initCam = puzzle[0].camY;
   initBGOfsY[0] = lcdioBuffer.bg1vofs;
   initBGOfsY[1] = lcdioBuffer.bg2vofs;
   initBGOfsY[2] = lcdioBuffer.bg3vofs;
   
   setGameState(GAME_PUZZLE, PUZZLE_TRANSITION1);
+}
+
+const void puzInitDefault() {
+  puzzle[0].stageMax = 3;
+  puzzle[0].stageCur = 1;
+  
+  puzzle[0].length = 2;
+  puzzle[0].breadth = 2;
+  puzzle[0].height = 1;
+  
+  puzInit();
 }
 
 const void puzInitPil(int puzID, int x, int y) {
@@ -609,9 +659,9 @@ const void puzRunAnims(int puzID) {
 // Loads button prompt text.
 const void puzLoadButtonPrompts() {
   const char* promptText[3][LANG_COUNT] = {
-    {": Terug.", ": Exit."},
-    {": Opties.", ": Settings."},
-    {": Uitleg.", ": Guide."}
+    {": Exit.", ": Exit."},
+    {": Menu.", ": Menu."},
+    {": Los op.", ": Solve."}
   };
   
   // Init.
@@ -653,40 +703,84 @@ const void puzDrawButtonPrompts() {
   addToOAMBuffer(&obj, 0);
 }
 
-// Draws additional "Return to title?" text.
-// Also calls default drawMenu.
+const void puzStartExitMenu() {
+  addMenu(&puzExitMenu);
+}
+
+// Default exit menu text.
 const void puzDrawExitMenu(const struct Menu* menu) {
   const char* question[LANG_COUNT] = {
     "Keer terug naar titelscherm?",
     "Return to title?"
   };
-  const int xOffs[LANG_COUNT] = {8, 37};
   
   drawMenu(menu);
   
-  // Draw additional "Return to title?" text.
-  tte_set_pos(menu->xBox + 3 + xOffs[gLang], menu->yBox + 2);
+  tte_set_pos(menu->xBox + 3, menu->yBox + 2);
   tte_write(question[gLang]);
 }
 
-// Clear text and box, then exit menu.
-const void puzCancelExit() {
+// Menu text when a stage of the puzzle is solved.
+const void puzDrawStageSolvedMenu(const struct Menu* menu) {
+  const char* question[LANG_COUNT][2] = {
+    {"Level behaald! Door", "naar volgende level?"},
+    {"Stage complete!", "Load next stage?"}
+  };
   
-  // Clear box.
-  CpuFastFill(0, &bgmap[1], 0x200);
-  setSyncBGMapFlagsByID(1);
+  drawMenu(menu);
   
-  // Clear text & re-load button prompt text.
-  CpuFastFill(0, (void*)tile_mem[0], 0x12C0);
-  puzLoadButtonPrompts();
+  tte_set_pos(menu->xBox + 3, menu->yBox + 2);
+  tte_write(question[gLang][0]);
+  tte_set_pos(menu->xBox + 3, menu->yBox + 14);
+  tte_write(question[gLang][1]);
+}
+
+// Menu text when puzzle is solved.
+const void puzDrawSolvedMenu(const struct Menu* menu) {
+  const char* question[LANG_COUNT][2] = {
+    {"Puzzel opgelost! Keer", "terug naar titelscherm?"},
+    {"Puzzle solved!", "Return to title?"}
+  };
   
+  drawMenu(menu);
+  
+  tte_set_pos(menu->xBox + 3, menu->yBox + 2);
+  tte_write(question[gLang][0]);
+  tte_set_pos(menu->xBox + 3, menu->yBox + 14);
+  tte_write(question[gLang][1]);
+}
+
+// If no more active menus, reload button prompts.
+const void puzMenuExit() {
+
   menuExit();
+  
+  // Re-load button prompt text.
+  if (activeMenu() == NULL)
+    puzLoadButtonPrompts();
 }
 
 // Return from puzzle to title screen.
 const void puzExit() {
   lcdioBuffer.dispcnt = 0;
   setGameState(GAME_TITLE, TITLE_START);
+}
+
+// Run when confirming next stage is to be loaded.
+// Sets the puzzle state to PUZZLE_SOLVETRANSITIONRETURN.
+const void puzNextStage() {
+  
+  menuExit();
+  setGameState(gGameState, PUZZLE_SOLVETRANSITIONRETURN);
+  gStateClock++;
+  
+  if (puzzle[0].height == 1) {
+    
+    // Skip non-matching colours blending to original colours,
+    // as there shouldn't be any non-matching colours.
+    gStateClock = 31;
+    
+  }
 }
 
 const void puzTransition1() {
@@ -699,7 +793,7 @@ const void puzTransition1() {
   if (gStateClock < 60) {
     // Move camera away from title screen.
     yOffs = ease(0, 160, gStateClock, 60, EASE_IN_QUADRATIC);
-    puzzle[0].camY = initPilCamY - yOffs;
+    puzzle[0].camY = initCam - yOffs;
     lcdioBuffer.bg1vofs = initBGOfsY[0] - yOffs;
     lcdioBuffer.bg2vofs = initBGOfsY[1] - yOffs;
     lcdioBuffer.bg3vofs = initBGOfsY[2] - yOffs;
@@ -805,8 +899,10 @@ const void puzTransition2() {
     
     // Load system palette.
     loadColours((COLOR*)systemPal, 272, systemPalLen>>1);
-    if ((puzDispOptions & 0xF) == PUZDISP_CURSOR3)
-      setColour(0x7C1F, 273);         // Magenta. Max red and blue, min green.
+    
+    // Load pal for solid colour option.
+    if ((puzDispOptions & 0x0F) == PUZDISP_CURSOR3)
+      setColour(CLR_MAGENTA, 273);
     setSyncPalFlagsByID(17);
     
     // Initialize puzzle.
@@ -828,9 +924,220 @@ const void puzTransition2() {
     
     puzzle[0].selPil = &puzzle[0].pil[0];
     
+    setGameState(gGameState, PUZZLE_RAISE);
+  }
+  
+  puzRunAnims(0);
+  puzDrawAll(0);
+  puzDrawButtonPrompts();
+  gStateClock++;
+}
+
+// Turn non-matching panes dark.
+// If puzzle is solved,
+// move game state to solveTransitionTrue.
+// otherwise,
+// move game state to solveTransitionFalse.
+//
+// If puzzle is solved also move puzzle to the right,
+// and open window prompt on the left. Otherwise,
+// brighten palette again.
+const void puzSolveTransition() {
+  int bld;
+  const COLOR clrs[4] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
+  COLOR bldClrs[4];
+  
+  if (gStateClock == 1) {
+    
+    // Set pane-matching colours to pre-blend colours.
+    // We will re-use these panes.
+    loadColours(&systemPal[3], 291, 4);
+    setSyncPalFlagsByID(18);
+    
+  } else if (gStateClock < 32) {
+    
+    // Blend non-matching colours with black.
+    bld = ease(0, 0x1F, gStateClock, 31, EASE_IN_QUADRATIC);
+    clr_blend(&systemPal[3], clrs, bldClrs, 4, bld);
+    loadColours(bldClrs, 259, 4);
+    setSyncPalFlagsByID(16);
+    
+  } else if (gStateClock == 32 ) {
+    
+    // Set non-matching colours to black.
+    loadColours(clrs, 259, 4);
+    setSyncPalFlagsByID(16);
+  
+  } else if (gStateClock == 40) {
+    
+    if (puzIsSolved()) {
+      CpuFastFill(0, &tile_mem[0], 0x12C0);     // Clear button prompt text.
+      initCam = puzzle[0].camX;
+      setGameState(gGameState, PUZZLE_SOLVETRANSITIONTRUE);
+    } else
+      setGameState(gGameState, PUZZLE_SOLVETRANSITIONFALSE);
+    
+  }
+  
+  puzRunAnims(0);
+  puzDrawAll(0);
+  puzDrawButtonPrompts();
+  puzDrawMatch(0, PUZDISP_MATCH3, 0);
+  gStateClock++;
+}
+
+// Move puzzle to the right, and
+// open window prompt on the left.
+const void puzSolveTransitionTrue() {
+  int scrl;
+  
+  if (gStateClock < 32) {
+    scrl = ease(0, 45, gStateClock, 31, EASE_IN_QUADRATIC);
+    puzzle[0].camX = initCam - scrl;
+  } else if (gStateClock == 32) {
+    if (puzzle[0].stageCur == puzzle[0].stageMax)
+      addMenu(&puzSolvedMenu);
+    else
+      addMenu(&puzStageSolvedMenu);
+  }
+  
+  runMenus();
+  puzRunAnims(0);
+  puzDrawAll(0);
+  puzDrawMatch(0, PUZDISP_MATCH3, 0);
+  gStateClock++;
+}
+
+// Brighten palettes again before returning to Idle.
+const void puzSolveTransitionFalse() {
+  int bld;
+  const COLOR clrs[4] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
+  COLOR bldClrs[4];
+  
+  if (gStateClock < 32) {
+    
+    // Transition non-matching colours back to original colours.
+    bld = ease(0x1F, 0, gStateClock, 31, EASE_OUT_QUADRATIC);
+    clr_blend(&systemPal[3], clrs, bldClrs, 4, bld);
+    loadColours(bldClrs, 259, 4);
+    setSyncPalFlagsByID(16);
+  
+  } else if (gStateClock == 32) {
+    
+    // Set non-matching colours back to original colours.
+    loadColours(&systemPal[3], 259, 4);
+    setSyncPalFlagsByID(16);
+    
+    // Return to idle.
     setGameState(gGameState, PUZZLE_IDLE);
-    gStateClock = 14;
-    puzzle[0].solveStatus = false;
+  }
+  
+  puzRunAnims(0);
+  puzDrawAll(0);
+  puzDrawButtonPrompts();
+  puzDrawMatch(0, PUZDISP_MATCH3, 0);
+  gStateClock++;
+}
+
+// This function executes after confirming
+// the next stage should be loaded.
+// Move pillars back to center,
+// brighten pane colours again,
+// lower pillars.
+const void puzSolveTransitionReturn() {
+  int bld, scrl;
+  const COLOR clrs[4] = {CLR_BLACK, CLR_BLACK, CLR_BLACK, CLR_BLACK};
+  COLOR bldClrs[4];
+    
+  if (gStateClock < 32) {
+    
+    // Transition non-matching colours back to original colours.
+    bld = ease(0x1F, 0, gStateClock, 31, EASE_OUT_QUADRATIC);
+    clr_blend(&systemPal[3], clrs, bldClrs, 4, bld);
+    loadColours(bldClrs, 259, 4);
+    setSyncPalFlagsByID(16);
+  
+  } else if (gStateClock < 63) {
+    
+    // Move puzzle back to centre.
+    scrl = ease(45, 0, gStateClock - 31, 31, EASE_IN_QUADRATIC);
+    puzzle[0].camX = initCam - scrl;
+    
+  } else {
+    
+    // Set puzzle to centre, enable button prompts and lower pillars.
+    puzzle[0].camX = initCam;
+    puzLoadButtonPrompts();
+    setGameState(gGameState, PUZZLE_LOWER);
+    
+  }
+
+  puzRunAnims(0);
+  puzDrawAll(0);
+  puzDrawMatch(0, PUZDISP_MATCH3, 0);
+  gStateClock++;
+}
+
+// Raise all valid pillars at the start of stage.
+const void puzRaise() {
+  int id, lim;
+  
+  // Do nothing if pillars are still raising.
+  if (puzzle[0].selPil->animID == PIL_ANIM_IDLE) {
+    
+    // Raise pillars if they're not tall enough and not currently raising.
+    if (puzzle[0].selPil->height < puzzle[0].height) {
+      lim = puzzle[0].length * puzzle[0].breadth;
+      for (id = 0; id < lim; id++)
+        pilSetAnim(&puzzle[0].pil[id], PIL_ANIM_RAISE);
+      
+    // If finished raising, return to idle.
+    } else {
+      setGameState(gGameState, PUZZLE_IDLE);
+      gStateClock = 30;
+      puzzle[0].solveStatus = false;
+    }
+  }
+  
+  puzRunAnims(0);
+  puzDrawAll(0);
+  puzDrawButtonPrompts();
+  gStateClock++;
+}
+
+// Lower all valid pillars at the end of stage.
+const void puzLower() {
+  int id, lim;
+  s16 camX, camY;
+  
+  // Do nothing if pillars are still lowering.
+  if (puzzle[0].selPil->animID == PIL_ANIM_IDLE) {
+    
+    // Lower pillars if they're not buried and not currently lowering.
+    if (puzzle[0].selPil->height > 0) {
+      lim = puzzle[0].length * puzzle[0].breadth;
+      for (id = 0; id < lim; id++)
+        pilSetAnim(&puzzle[0].pil[id], PIL_ANIM_LOWER);
+      
+    // If finished lowering, generate puzzle before raising again.
+    } else {
+      
+      // Increase params.
+      puzzle[0].stageCur++;
+      puzzle[0].length++;
+      puzzle[0].breadth++;
+      puzzle[0].height++;
+      
+      // Generate puzzle, but keep camera values.
+      camX = puzzle[0].camX;
+      camY = puzzle[0].camY;
+      puzGenerate();
+      puzzle[0].camX = camX;
+      puzzle[0].camY = camY;
+      
+      // Next state.
+      setGameState(gGameState, PUZZLE_RAISE);
+    }
   }
   
   puzRunAnims(0);
@@ -843,19 +1150,22 @@ const void puzIdle() {
   int moved;
   
   // Handle menu.
-  if (isThereAnActiveMenu())
+  if (activeMenu() != NULL)
     runMenus();
-  else if (puzzle[0].selPil->animID == PIL_ANIM_IDLE) { // Only handle input if selected pillar is not still moving.
+  else if (puzzle[0].selPil->animID == PIL_ANIM_IDLE) {
+    // Only handle input if selected pillar is not still moving.
     
     // Match panes again after pillar was turned.
     if (puzzle[0].solveStatus) {
       puzMatchRowOrCol((puzzle[0].selPil->id - 1) / puzzle[0].breadth, false);
       puzMatchRowOrCol((puzzle[0].selPil->id - 1) % puzzle[0].breadth, true);
       puzzle[0].solveStatus = false;
-    }
-  
-    // Handle button input.
-    if (key_held(KEY_L)) {
+      
+      // Move to solved transition if puzzle has been solved.
+      //if (puzIsSolved())
+        //setGameState(gGameState, PUZZLE_SOLVEDTRANSITION);
+      
+    } else if (key_held(KEY_L)) {           // Handle button input.
       if (key_hit(KEY_A))
         puzDispOptions ^= PUZDISP_MATCHDISABLE;
       if (key_hit(KEY_B))
@@ -864,13 +1174,24 @@ const void puzIdle() {
       pilSetAnim(puzzle[0].selPil, PIL_ANIM_TURN);
       puzzle[0].solveStatus = true;         // Re-solve puzzle after pillar finished turning.
     } else if (key_hit(KEY_B)) {
-      addMenu(&exitMenu);
-    } else if (key_hit(KEY_START)) {
-      lcdioBuffer.dispcnt = 0;      // Disable all display.
-      setGameState(GAME_GUIDE, GUIDE_START);
+      puzStartExitMenu();
+    } else if (key_hit(KEY_START)) {        // Confirm puzzle solution.
+      
+      // Skip darkening panes when no panes can be darkened.
+      if (puzzle[0].height == 1) {
+        if (puzIsSolved()) {
+          loadColours(&systemPal[3], 291, 4);
+          setSyncPalFlagsByID(18);
+          CpuFastFill(0, &tile_mem[0], 0x12C0);     // Clear button prompt text.
+          initCam = puzzle[0].camX;
+          setGameState(gGameState, PUZZLE_SOLVETRANSITIONTRUE);
+        } else
+          ; // Play "Incorrect" sfx.
+      } else
+        setGameState(gGameState, PUZZLE_SOLVETRANSITION);
+      
     } else if (key_hit(KEY_SELECT)) {
-      lcdioBuffer.dispcnt = 0;      // Disable all display.
-      setGameState(GAME_OPTIONS, OPTIONS_START);
+      addMenu(&puzMainMenu);
     } else {
     
       // Handle D-pad input.
@@ -892,7 +1213,7 @@ const void puzIdle() {
   puzDrawAll(0);
   
   // Draw these only if there's no active menu.
-  if (!isThereAnActiveMenu()) {
+  if (activeMenu() == NULL) {
     puzDrawButtonPrompts();
     puzDrawMatch(0, puzDispOptions, gStateClock);
     puzDrawCursor(0, puzDispOptions, puzzle[0].selPil, gStateClock);
@@ -908,6 +1229,24 @@ const void puzUpdate() {
       break;
     case PUZZLE_TRANSITION2:
       puzTransition2();
+      break;
+    case PUZZLE_SOLVETRANSITION:
+      puzSolveTransition();
+      break;
+    case PUZZLE_SOLVETRANSITIONTRUE:
+      puzSolveTransitionTrue();
+      break;
+    case PUZZLE_SOLVETRANSITIONFALSE:
+      puzSolveTransitionFalse();
+      break;
+    case PUZZLE_SOLVETRANSITIONRETURN:
+      puzSolveTransitionReturn();
+      break;
+    case PUZZLE_RAISE:
+      puzRaise();
+      break;
+    case PUZZLE_LOWER:
+      puzLower();
       break;
     case PUZZLE_IDLE:
       puzIdle();

@@ -63,7 +63,7 @@ const void reset(int forceReset) {
     setGameState(GAME_RESET, 0);
     
     // Set default options.
-    puzDispOptions = PUZDISP_CURSOR2 | PUZDISP_MATCH1 | PUZDISP_MATCHDISABLE;
+    puzDispOptions = PUZDISP_CURSOR2 | PUZDISP_MATCH2;
     guidePageID = 0;
 
     // Set first colour of palette to white to avoid flashing.

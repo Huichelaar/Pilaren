@@ -58,6 +58,10 @@ const void titleStart() {
   lcdioBuffer.bg1hofs = 0;
   lcdioBuffer.bg1vofs = 0;
   
+  // Set default display options.
+  puzDispOptions |= PUZDISP_MATCHDISABLE;
+  puzDispOptions &= ~PUZDISP_CURSORDISABLE;
+  
   // Used by titleLoad to determine when to move to next state.
   *titleLoadProgress = 0;
   

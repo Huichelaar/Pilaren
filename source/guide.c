@@ -392,6 +392,8 @@ const void guideIdle() {
 }
 
 const void guideReturn() {
+  const struct Menu* menu;
+  
   if (gPrevGameState == GAME_TITLE) {
     
     // Set BG-control.
@@ -410,8 +412,10 @@ const void guideReturn() {
     setColour(CLR_DEAD, 0);
     setSyncPalFlagsByID(0);
     
-    // Re-draw main menu.
-    titleMenu.onOpen(&titleMenu);
+    // Re-draw menu.
+    menu = activeMenu();
+    if (menu != NULL)
+      menu->onOpen(menu);
     
     // Load Title tiles, tilemap.
     CpuFastSet((void*)pilTitleTiles, (void*)tile8_mem, pilTitleTilesLen>>2);
@@ -448,8 +452,19 @@ const void guideReturn() {
     setColour(CLR_DEAD, 0);
     setSyncPalFlagsByID(0);
     
+    // Load pal for solid colour option.
+    if ((puzDispOptions & 0x0F) == PUZDISP_CURSOR3) {  
+      setColour(CLR_MAGENTA, 273);
+      setSyncPalFlagsByID(17);
+    }
+    
     // Re-load pillar tiles.
     puzReloadTiles(0);
+    
+    // Re-draw menu.
+    menu = activeMenu();
+    if (menu != NULL)
+      menu->onOpen(menu);
     
     setGameState(GAME_PUZZLE, PUZZLE_IDLE);
   }
