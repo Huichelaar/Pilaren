@@ -9,3 +9,7 @@ If I ever wish to make another homebrew GBA project, here's what I should try to
 - Pilaren doesn't use a proc system like what FEGBA uses. There are available free-to-use threading libraries, but so far their implementation is a bit 'extreme' for me. When 'switching threads', all registers get pushed to stack for example. I like how FEGBA's proc system is a bit more limited. Idk if I want to implement a system like FEGBA's proc system, as Pilaren makes do fine with its 'phase-based' setup as I call it.
 
 - Move all text to a separate text folder. Prefix files with 't' to avoid multiple definition errors. Adding new languages should be easier this way.
+
+- CopyOnVBlankQueue. Functionality of this might overlap with DMA. Should see if you can effectively use DMA instead for something. Keep tonc 14.3.2 "DMA; don't wear it out" in mind! Maybe try DMA on HBlank routines like sinusoid effect.
+
+- Use timers for... something. Tonc mentions profiling. Try that if you suspect some function is slow. I've put some functions in IWRAM already due to their lack of speed, maybe those would make good candidates for comparison?

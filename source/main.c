@@ -8,6 +8,7 @@
 #include "puzzle.h"
 #include "guide.h"
 #include "options.h"
+#include "sound.h"
 #include "main.h"
 
 #define CURSORLOOP_INIT_DELAY 30  // After CURSORLOOP_INIT_DELAY frames,
@@ -40,6 +41,14 @@ const void reset(int forceReset) {
   
     // Clear IRQ.
     IRQ_INIT();
+    
+    // This part is from tonc's sound demo.
+    REG_SNDSTAT = SSTAT_ENABLE;                     // Turn sound on.
+    REG_SNDDMGCNT = SDMG_BUILD_LR(SDMG_SQR1, 7);    // snd1 on left/right ; both full volume.
+    REG_SNDDSCNT = SDS_DMG100;                      // DMG ratio to 100%.
+    REG_SND1SWEEP = SSW_OFF;                        // No sweep.
+    REG_SND1CNT = SSQR_ENV_BUILD(12, 0, 7) | SSQR_DUTY1_2;  // Envelope: vol=12, decay, max step time (7) ; 50% duty.
+    REG_SND1FREQ = 0;
     
     // Clear buffers.
     clearBGMapBuffer(0);

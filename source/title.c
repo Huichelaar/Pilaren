@@ -11,6 +11,7 @@
 #include "guide.h"
 #include "options.h"
 #include "menu.h"
+#include "sound.h"
 #include "main.h"
 #include "title.h"
 
@@ -35,6 +36,10 @@ u8* menuID = (u8*)(ADR4);               // Used to keep track of which (sub)menu
 
 const void titleStart() {
   int pilID;
+  
+  // Experimenting with (direct)sound
+  startSoundMixer();
+  //playNote(NOTE_C, 0);
   
   // Set video mode to 0.
   lcdioBuffer.dispcnt = DCNT_MODE0 | DCNT_OBJ_1D;
